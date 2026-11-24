@@ -737,6 +737,39 @@ void drawLed(Graphics &g, Point<float> c, float r, float level, Colour col)
     g.fillEllipse(Rectangle<float>(r * 0.55f, r * 0.4f).withCentre(c + Point<float>(LX, LY) * r * 0.5f));
 }
 
+/* ORBIT: a black glass well in a steel ring, a faint track, five amber LEDs where the drone's oscillators are on
+   their way round (each a fifth of a turn on) */
+void drawOrbit(Graphics &g, Rectangle<float> r, float phase)
+{
+    const float d = jmin(r.getWidth(), r.getHeight());
+    auto c = Rectangle<float>(d, d).withCentre(r.getCentre()).reduced(d * 0.08f);
+    const float R = c.getWidth() * 0.5f;
+    const Point<float> m = c.getCentre();
+    softShadow(g, m, R * 1.0f, R * 1.14f, 0.55f, {R * 0.04f, R * 0.07f});
+    chamfer(g, m, R * 0.96f, R * 1.08f, Colour(0xff8a8579), 0.6f, 0.7f, 96);
+    ColourGradient well(Colour(0xff1d1c1a), m.x + LX * R * 0.3f, m.y + LY * R * 0.3f, Colour(0xff050505), m.x + R, m.y, true);
+    g.setGradientFill(well);
+    g.fillEllipse(c);
+    g.setColour(Colour(0xff000000));
+    g.drawEllipse(c, jmax(0.6f, R * 0.02f));
+    const float tr = R * 0.66f;            /* the track, dotted */
+    g.setColour(Colour(0xff6b6555).withAlpha(0.55f));
+    for (int k = 0; k < 40; k++) {
+        float a = MathConstants<float>::twoPi * (float)k / 40.0f;
+        g.fillEllipse(Rectangle<float>(R * 0.035f, R * 0.035f).withCentre({m.x + tr * std::sin(a), m.y - tr * std::cos(a)}));
+    }
+    g.setColour(Colour(0xff3a3730));       /* the hub */
+    g.fillEllipse(Rectangle<float>(R * 0.16f, R * 0.16f).withCentre(m));
+    for (int k = 0; k < 5; k++) {
+        float a = MathConstants<float>::twoPi * (phase + 0.2f * (float)k);
+        drawLed(g, {m.x + tr * std::sin(a), m.y - tr * std::cos(a)}, R * 0.085f, k == 0 ? 1.0f : 0.72f, Colour(0xffffa630));
+    }
+    Path rim;                              /* the glass catching light */
+    rim.addCentredArc(m.x, m.y, R * 0.92f, R * 0.92f, 0.0f, LANG + MathConstants<float>::halfPi - 1.2f, LANG + MathConstants<float>::halfPi + 1.2f, true);
+    g.setColour(Colours::white.withAlpha(0.16f));
+    g.strokePath(rim, PathStrokeType(R * 0.04f, PathStrokeType::curved, PathStrokeType::rounded));
+}
+
 /* the light sensor: an old glass dome in a steel ring, milky and yellowed, glowing with what it sees */
 void drawDome(Graphics &g, Rectangle<float> r, float level)
 {

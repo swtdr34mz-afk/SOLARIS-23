@@ -22,6 +22,7 @@ const char *const CH_SEQDEST[] = {"VCO PLAY", "CUT L",  "CUT R",  "CUT L+R", "CU
 const char *const CH_STAGES[] = {"3", "4", "5"};
 const char *const CH_CLOCK[] = {"PULSER", "1/2", "1/4", "1/8", "1/16", "1/8T", "1/16T"};
 const char *const CH_LIGHT[] = {"AMBIENT", "LFO A", "LFO B", "SEQ"};
+const char *const CH_ORBIT[] = {"FREE", "LFO A", "LFO B", "SEQ"};
 const char *const CH_GRID[] = {"FREE", "SEMI"};
 const char *const CH_BEND[] = {"OFF", "1", "2", "7", "12"};
 
@@ -187,6 +188,15 @@ void paramText(int i, float v, char *out, int n)
     case LIGHT_RATE:
         hz(map::lightHz(v));
         return;
+    case ORBIT_RATE:
+        hz(map::orbitHz(v));
+        return;
+    case ORBIT_WIDTH:
+        std::snprintf(out, (size_t)n, "%.0f%%", map::orbitWidth(v) * 100.0f);
+        return;
+    case D1_TONE: case D2_TONE: case D4_TONE: case D5_TONE:
+        hz(map::droneToneHz(v));
+        return;
     case SEQ_S1: case SEQ_S2: case SEQ_S3: case SEQ_S4: case SEQ_S5:
         std::snprintf(out, (size_t)n, "%.2f V", v * 5.0f);
         return;
@@ -212,7 +222,11 @@ void paramText(int i, float v, char *out, int n)
         break;
     }
     if (d.kind == K_BIP) {
-        if (between(i, D1_PAN, D6_PAN)) {
+        bool oscPan = false;
+        static const int OSC_PAN1[4] = {D1_PAN1, D2_PAN1, D4_PAN1, D5_PAN1};
+        for (int b : OSC_PAN1)
+            oscPan = oscPan || between(i, b, b + 4);
+        if (between(i, D1_PAN, D6_PAN) || oscPan) {
             float x = map::bip(v);
             if (std::fabs(x) < 0.01f)
                 std::snprintf(out, (size_t)n, "C");

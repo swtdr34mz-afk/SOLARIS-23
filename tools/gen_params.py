@@ -31,7 +31,7 @@ for d in (1, 2, 4, 5):
     for o in range(1, 6):
         P("D%d_ON%d" % (d, o), "d%d_on%d" % (d, o), "DRONE %d OSC %d" % (d, o), "D%d Osc %d" % (d, o), "K_SW", default=1)
     for o in range(1, 6):
-        P("D%d_MOD%d" % (d, o), "d%d_mod%d" % (d, o), "DRONE %d MOD %d" % (d, o), "D%d Mod %d" % (d, o), "K_SW", default=0)
+        P("D%d_MOD%d" % (d, o), "d%d_mod%d" % (d, o), "(UNUSED) DRONE %d MOD %d" % (d, o), "D%d Mod %d" % (d, o), "K_SW", default=0)   # (v1.2: PAN instead)
     P("D%d_VOLT" % d, "d%d_volt" % d, "DRONE %d VOLT" % d, "D%d Volt" % d, "K_BIP", default=0.5)
     P("D%d_ATT" % d, "d%d_att" % d, "DRONE %d ATTACK" % d, "D%d Attack" % d, default=0.35)
     P("D%d_RLS" % d, "d%d_rls" % d, "DRONE %d RELEASE" % d, "D%d Release" % d, default=0.45)
@@ -113,9 +113,9 @@ P("SEQ_CLOCK", "seq_clock", "SEQ CLOCK", "Seq Clock", "K_CH", "CH_CLOCK", defaul
 P("SEQ_DEST", "seq_dest", "SEQ DEST", "Seq Dest", "K_CH", "CH_SEQDEST", default=0)
 P("SEQ_DEPTH", "seq_depth", "SEQ DEPTH", "Seq Depth", "K_BIP", default=0.75)
 P("SEQ_RUN", "seq_run", "SEQ RUN", "Seq Run", "K_SW", default=0)
-P("LIGHT_SRC", "light_src", "LIGHT SOURCE", "Light Src", "K_CH", "CH_LIGHT", default=0)
-P("LIGHT_RATE", "light_rate", "LIGHT DRIFT", "Light Drift", default=0.35)
-P("LIGHT_DEPTH", "light_depth", "LIGHT DEPTH", "Light Depth", default=0.3)
+P("LIGHT_SRC", "light_src", "(UNUSED) LIGHT SOURCE", "Light Src", "K_CH", "CH_LIGHT", default=0)
+P("LIGHT_RATE", "light_rate", "(UNUSED) LIGHT DRIFT", "Light Drift", default=0.35)
+P("LIGHT_DEPTH", "light_depth", "(UNUSED) LIGHT DEPTH", "Light Depth", default=0.3)   # (v1.2: ORBIT instead)
 
 # the dual effector: a cartridge program each side; X, Y, Z and BLEND shared (as on the instrument)
 P("FXL", "fxl", "EFFECT L", "Effect L", "K_CH", "CH_FX", default=0)
@@ -136,6 +136,19 @@ for d in (1, 2, 4, 5, 3, 6):
 # (appended later: the touch plates' own tuning, each plate's offset from its note, +-12 semitones)
 for k in range(1, 13):
     P("PLATE_%d" % k, "plate_%d" % k, "PLATE %d TUNE" % k, "Plate %d" % k, "K_BIP", default=0.5)
+
+# (appended later, v1.2: the drones' own stereo and character in place of MOD and the light sensors)
+OSC_PAN = [0.38, 0.62, 0.5, 0.44, 0.56]      # a gentle spread, oscillator 3 in the middle
+for d in (1, 2, 4, 5):
+    for o in range(1, 6):
+        P("D%d_PAN%d" % (d, o), "d%d_pan%d" % (d, o), "DRONE %d PAN %d" % (d, o), "D%d Pan %d" % (d, o), "K_BIP", default=OSC_PAN[o - 1])
+    P("D%d_TONE" % d, "d%d_tone" % d, "DRONE %d TONE" % d, "D%d Tone" % d, default=1.0)
+    P("D%d_DRIFT" % d, "d%d_drift" % d, "DRONE %d DRIFT" % d, "D%d Drift" % d, default=0.3)
+    P("D%d_SWIRL" % d, "d%d_swirl" % d, "DRONE %d SWIRL" % d, "D%d Swirl" % d, default=0.0)
+# ORBIT: what moves the drones' oscillators round the stereo field (their SWIRL), and how wide that field is
+P("ORBIT_SRC", "orbit_src", "ORBIT SOURCE", "Orbit Src", "K_CH", "CH_ORBIT", default=0)
+P("ORBIT_RATE", "orbit_rate", "ORBIT RATE", "Orbit Rate", default=0.35)
+P("ORBIT_WIDTH", "orbit_width", "ORBIT WIDTH", "Orbit Width", default=0.67)
 
 ids = [r[1] for r in rows]
 assert len(ids) == len(set(ids))

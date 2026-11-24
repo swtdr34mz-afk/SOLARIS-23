@@ -163,7 +163,7 @@ private:
 class Lamp : public juce::Component
 {
 public:
-    enum Kind { led, dome };
+    enum Kind { led, dome, orbit };
     Lamp(Kind k, std::function<float()> level, juce::Colour c = RED_LED) : kind(k), level(std::move(level)), col(c)
     {
         setInterceptsMouseClicks(false, false);
@@ -173,6 +173,8 @@ public:
         auto r = getLocalBounds().toFloat();
         if (kind == dome)
             drawDome(g, r, level());
+        else if (kind == orbit)
+            drawOrbit(g, r, level());
         else
             drawLed(g, r.getCentre(), (r.getWidth() < r.getHeight() ? r.getWidth() : r.getHeight()) * 0.28f, level(), col);
     }

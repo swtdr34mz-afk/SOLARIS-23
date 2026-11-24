@@ -85,21 +85,21 @@ static String pid(const char *fmt, int a, int b = 0)
     return t;
 }
 
-/* DRONE 1, 2, 4, 5: five oscillators in columns (ON, TUNE, MOD: the light), their state in a row of lamps, VOLT,
- * ATTACK, RELEASE, the light sensor; the key is on the drone keys */
+/* DRONE 1, 2, 4, 5: five oscillators in columns (ON, TUNE, PAN), their state in a row of lamps, VOLT, ATTACK,
+ * RELEASE, the level and HOLD; TONE, DRIFT, SWIRL; the key is on the drone keys */
 void Builder::classic(int d, R r)
 {
     const int x = r.getX(), y = r.getY();
     section(r, "DRONE " + String(d));
     text({x + 4, y + 26, 14, 30}, "ON", 8.5f, true);
     text({x + 4, y + 60, 14, 46}, "TUNE", 8.5f, true);
-    text({x + 4, y + 110, 14, 30}, "MOD", 8.5f, true);
+    text({x + 4, y + 108, 14, 34}, "PAN", 8.5f, true);
     for (int k = 1; k <= 5; k++) {
         int cx = x + 22 + (k - 1) * 40;
         text({cx, y + 21, 40, 10}, String(k), 9.5f);
         sw(pid("d%d_on%d", d, k).toRawUTF8(), "", SW::button, {cx, y + 32, 40, 24});
         knob(pid("d%d_t%d", d, k).toRawUTF8(), "", KS::black, {cx, y + 60, 40, 44}, 34.0f);
-        sw(pid("d%d_mod%d", d, k).toRawUTF8(), "", SW::buttonGrey, {cx, y + 112, 40, 26});
+        knob(pid("d%d_pan%d", d, k).toRawUTF8(), "", KS::light, {cx + 4, y + 106, 32, 36}, 27.0f);
         if (k < 5)
             dots((float)cx + 40.0f, (float)y + 30.0f, (float)cx + 40.0f, (float)y + 140.0f);
     }
@@ -120,8 +120,15 @@ void Builder::classic(int d, R r)
     add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 52, y + 250, 18, 18});
     text({x + 8, y + 252, 44, 14}, "level", 9.5f);
     sw(pid("d%d_hold", d).toRawUTF8(), "HOLD", SW::toggle, {x + 92, y + 238, 40, 50});
+    /* the drone's character: how dark, how unsteady, how far round the stereo field its five oscillators travel */
+    dots((float)x + 150.0f, (float)y + 156.0f, (float)x + 150.0f, (float)y + 284.0f);
+    knob(pid("d%d_tone", d).toRawUTF8(), "TONE", KS::slate, {x + 152, y + 160, 48, 80}, 38.0f, true);
+    knob(pid("d%d_drift", d).toRawUTF8(), "DRIFT", KS::slate, {x + 199, y + 160, 48, 80}, 38.0f, true);
+    knob(pid("d%d_swirl", d).toRawUTF8(), "SWIRL", KS::blue, {x + 246, y + 160, 48, 80}, 38.0f, true);
     auto lf = meters.light;
-    add(new Lamp(Lamp::dome, [lf, d] { return jlimit(0.0f, 1.0f, lf() * (0.92f + 0.03f * (float)d)); }), {x + 160, y + 156, 122, 122});
+    const float off = 0.13f * (float)d;
+    add(new Lamp(Lamp::orbit, [lf, off] { return lf() + off; }), {x + 236, y + 240, 50, 50});
+    text({x + 152, y + 252, 82, 22}, "dark  |  wander  |  orbit", 8.0f);
 }
 
 /* DRONE 3, 6: the modulator (RATE, x1/x10), FM AMT, the tone (PITCH, LOW/HIGH), the switches FM and AM, DIVIDER,
@@ -285,12 +292,12 @@ void Builder::sequencer(R r)
 void Builder::light(R r)
 {
     const int x = r.getX(), y = r.getY();
-    section(r, "LIGHT SENSOR");
-    knob("light_src", "source", KS::black, {x + 6, y + 22, 88, 66}, 32.0f);
-    knob("light_rate", "drift", KS::slate, {x + 6, y + 90, 60, 58}, 40.0f);
-    knob("light_depth", "depth", KS::light, {x + 66, y + 90, 60, 58}, 40.0f);
-    add(new Lamp(Lamp::dome, meters.light), {x + 112, y + 26, 92, 92});
-    text({x + 106, y + 124, 102, 14}, "the room's light", 9.0f);
+    section(r, "ORBIT");
+    knob("orbit_src", "source", KS::black, {x + 6, y + 22, 88, 66}, 32.0f);
+    knob("orbit_rate", "rate", KS::slate, {x + 6, y + 90, 60, 58}, 40.0f);
+    knob("orbit_width", "width", KS::light, {x + 66, y + 90, 60, 58}, 40.0f);
+    add(new Lamp(Lamp::orbit, meters.light), {x + 112, y + 26, 92, 92});
+    text({x + 106, y + 124, 102, 14}, "the drones' orbit", 9.0f);
 }
 
 void Builder::droneKeys(R r)

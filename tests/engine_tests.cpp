@@ -172,7 +172,7 @@ int main(int argc, char **argv)
             CHECK(t[0] != 0, "%s: no text", PARAMS[i].id);
         }
     }
-    CHECK(NPARAMS == 212, "the parameters' count changed: %d (append only)", NPARAMS);
+    CHECK(NPARAMS == 247, "the parameters' count changed: %d (append only)", NPARAMS);
 
     /* no program opens a drone by itself */
     {
@@ -239,6 +239,33 @@ int main(int argc, char **argv)
             }
         }
         CHECK(moving < still * 2.0 + 0.01, "%s: the mod wheel crackles (%.3f against %.3f)", presetName(p), moving, still);
+    }
+
+    /* the drones' own stereo: one oscillator panned hard left is on the left only; SWIRL carries it round */
+    for (int swirl = 0; swirl < 2; swirl++) {
+        Engine e;
+        e.prepare(44100.0);
+        for (int i = 0; i < NPARAMS; i++)
+            e.set(i, PARAMS[i].def);
+        for (int k = 1; k < 5; k++)
+            e.set(D1_ON1 + k, 0.0f);
+        e.set(D1_PAN1, 0.0f);
+        e.set(D1_PAN, 0.5f);
+        e.set(ORBIT_WIDTH, 1.0f / 1.5f);
+        e.set(D1_SWIRL, swirl ? 1.0f : 0.0f);
+        e.set(ORBIT_RATE, 0.6f);
+        e.set(D1_HOLD, 1.0f);
+        std::vector<float> L(44100 * 6), R(44100 * 6);
+        e.render(L.data(), R.data(), 44100 * 6);
+        double l = 0, r = 0;
+        for (size_t i = 44100; i < L.size(); i++) {
+            l += (double)L[i] * L[i];
+            r += (double)R[i] * R[i];
+        }
+        if (!swirl)
+            CHECK(l > 1.0 && r < l * 1e-4, "PAN 1 hard left: left %.3f right %.6f", l, r);
+        else
+            CHECK(r > l * 0.2, "SWIRL: the oscillator never comes right (left %.3f right %.3f)", l, r);
     }
 
     /* every program at three rates: it sounds, nothing over 1, nothing not a number */

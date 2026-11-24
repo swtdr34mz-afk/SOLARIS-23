@@ -34,6 +34,11 @@ struct Page : juce::Component {
     std::vector<juce::Point<float>> screws;
     std::function<void(juce::Graphics &)> extra;
     void paint(juce::Graphics &g) override;
+    void paintBackground(juce::Graphics &g);
+
+private:
+    juce::Image cache;                  /* the panel, its print and its wear: drawn once */
+    float cacheScale = 0.0f;
 };
 
 struct Builder {

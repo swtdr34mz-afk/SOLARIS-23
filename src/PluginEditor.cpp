@@ -18,7 +18,7 @@ struct SolarisEditor::Header : Component {
     void paint(Graphics &g) override
     {
         drawLogo(g, logo());
-        drawLegend(g, juce::String::fromUTF8("microtonal drone synthesizer"), {360.0f, 20.0f, 150.0f, 26.0f}, 10.5f);
+        drawLegend(g, juce::String::fromUTF8("drone  ·  ambient\nmicrotonal"), {360.0f, 16.0f, 140.0f, 32.0f}, 10.5f);
         drawLcd(g, prog());
         g.setColour(lcdText());
         g.setFont(font(Face::mono, 17.0f));
@@ -56,8 +56,6 @@ struct SolarisEditor::Header : Component {
             ed.proc.setCurrentProgram((p + 1) % n);
         else if (save().expanded(4.0f).contains(e.position))
             ed.saveProgram();
-        else if (logo().contains(e.position))
-            ed.finishMenu();
         repaint();
     }
 };
@@ -98,8 +96,7 @@ SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), pr
     b.global({1332, 818, 212, 140});
     page.extra = [](Graphics &g) {
         drawTag(g, {1330.0f, 966.0f, 200.0f, 26.0f});
-        drawLegend(g, juce::String::fromUTF8("SOLARIS-23  ·  swtdr34mz  ·  click the name for the panel's finish"),
-                   {24.0f, 968.0f, 520.0f, 22.0f}, 10.0f);
+        drawLegend(g, juce::String::fromUTF8("MICROTONAL DRONE MACHINE  ·  No. 23  ·  swtdr34mz"), {24.0f, 968.0f, 360.0f, 22.0f}, 10.0f);
     };
     for (float sx : {10.0f, 780.0f, 1550.0f})   /* the panel's screws */
         for (float sy : {10.0f, 990.0f})

@@ -316,14 +316,30 @@ void Plates::paint(Graphics &g)
         auto p = plate(i);
         bool lit = ks.isNoteOn(1, octave * 12 + 12 + i);
         if (lit) {
-            g.setColour(AMBER_LED.withAlpha(0.3f));
+            g.setColour(AMBER_LED.withAlpha(0.25f));
             g.fillRect(p.expanded(4.0f));
         }
-        g.setColour(lit ? Colour(0xfffff1cf) : Colour(0xffe9e9e9));
+        /* brass, darkened with age, rubbed bright where it is touched */
+        g.setColour(Colours::black.withAlpha(0.6f));
+        g.fillRect(p.expanded(1.5f).translated(0.0f, 1.5f));
+        g.setGradientFill(ColourGradient(lit ? Colour(0xffe8c278) : Colour(0xffa98a4c), p.getX(), p.getY(),
+                                         lit ? Colour(0xffa8803a) : Colour(0xff5e4a24), p.getRight(), p.getBottom(), false));
         g.fillRect(p);
-        g.setColour(Colour(0xff151515));
-        for (float y = p.getY() + 4.0f; y < p.getBottom() - 3.0f; y += 4.0f)   /* its ribs */
-            g.fillRect(p.getX() + 4.0f, y, p.getWidth() - 8.0f, 1.6f);
+        g.setGradientFill(ColourGradient(Colours::white.withAlpha(0.16f), p.getCentreX(), p.getCentreY(), Colours::transparentWhite,
+                                         p.getCentreX() + p.getWidth(), p.getCentreY(), true));
+        g.fillRect(p);
+        for (float y = p.getY() + 4.0f; y < p.getBottom() - 3.0f; y += 4.0f) {   /* its grooves */
+            g.setColour(Colour(0xff1c150a).withAlpha(0.85f));
+            g.fillRect(p.getX() + 3.0f, y, p.getWidth() - 6.0f, 1.4f);
+            g.setColour(Colours::white.withAlpha(0.08f));
+            g.fillRect(p.getX() + 3.0f, y + 1.4f, p.getWidth() - 6.0f, 0.6f);
+        }
+        Random rnd(i * 77 + 5);          /* verdigris and dirt */
+        for (int k = 0; k < 10; k++) {
+            g.setColour((rnd.nextBool() ? Colour(0xff4f7a5c) : Colour(0xff20170c)).withAlpha(0.15f + 0.2f * rnd.nextFloat()));
+            g.fillEllipse(p.getX() + rnd.nextFloat() * p.getWidth(), p.getY() + rnd.nextFloat() * p.getHeight(), 2.0f + rnd.nextFloat() * 4.0f,
+                          2.0f + rnd.nextFloat() * 3.0f);
+        }
     }
     for (int d : {-1, 1}) {
         auto a = arrow(d);

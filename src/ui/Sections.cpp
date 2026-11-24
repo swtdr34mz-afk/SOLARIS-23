@@ -11,16 +11,28 @@ static String U(const char *s) { return String::fromUTF8(s); }
 
 void Page::paint(Graphics &g)
 {
+    /* the background (the panel, the frames, the print, the wear) drawn once, at the window's size */
+    float sc = jlimit(1.0f, 2.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
+    if (!cache.isValid() || std::fabs(sc - cacheScale) > 0.05f) {
+        cacheScale = sc;
+        cache = Image(Image::RGB, (int)std::ceil((float)getWidth() * sc), (int)std::ceil((float)getHeight() * sc), false);
+        Graphics cg(cache);
+        cg.addTransform(AffineTransform::scale(sc));
+        paintBackground(cg);
+    }
+    g.drawImage(cache, getLocalBounds().toFloat());
+}
+
+void Page::paintBackground(Graphics &g)
+{
     drawPanel(g, getLocalBounds().toFloat());
-    for (auto &p : screws)
-        drawScrew(g, p, 5.0f);
     for (auto &s : sections)
         drawSection(g, s.r, s.title, s.sec);
-    g.setColour(ink().withAlpha(0.7f));
+    g.setColour(ink().withAlpha(0.6f));
     for (auto &l : dotted) {
         float len = l.getLength();
         for (float t = 0.0f; t < len; t += 5.0f)
-            g.fillEllipse(Rectangle<float>(1.6f, 1.6f).withCentre(l.getPointAlongLine(t)));
+            g.fillEllipse(Rectangle<float>(1.5f, 1.5f).withCentre(l.getPointAlongLine(t)));
     }
     for (auto &t : texts) {
         if (t.vertical) {                /* a bar of the print with the letters standing up (the rows' names) */
@@ -29,7 +41,7 @@ void Page::paint(Graphics &g)
             auto rr = Rectangle<float>(t.r.getHeight(), t.r.getWidth()).withCentre(t.r.getCentre());
             g.setColour(ink());
             g.fillRect(rr);
-            g.setColour(panelColour());
+            g.setColour(Colour(0xff151515));
             g.setFont(font(Face::title, t.size));
             g.drawText(t.text, rr, Justification::centred, false);
         } else
@@ -37,6 +49,9 @@ void Page::paint(Graphics &g)
     }
     if (extra)
         extra(g);
+    drawWear(g, getLocalBounds().toFloat());
+    for (auto &p : screws)
+        drawScrew(g, p, 5.5f);
 }
 
 void Builder::section(R r, const String &title, Sec s) { page.sections.push_back({r.toFloat(), title, s}); }

@@ -1,11 +1,9 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* SOLARIS-23's look, after the analogue drone machines it is inspired by: one powder-coated metal panel (a fine
- * grain, screws), black print, sections framed by black lines with black name tabs, plastic knob caps in a few
- * colours (black, slate grey, light grey, blue, red), metal toggle switches, round push buttons, square drone keys,
- * milky light sensors, blue LCD windows, a black field with white ribbed touch plates. The panel's finish can be
- * changed (orange, yellow, white, blue, pink); everything else stays. Fonts embedded (Fira Sans, Anonymous Pro: SIL
- * OFL, fonts/). */
+/* SOLARIS-23's look: a heavy-aged relic. A black, rough steel panel with decades of wear (scratches, scuffs to the
+ * primer, chipped edges, grime, rust at the screws), bone print worn thin, black bakelite / brushed aluminium / bone /
+ * oxide-red caps, dulled chrome toggles, push buttons, drone keys, old glass light sensors, amber LCDs, brass touch
+ * plates. Fonts embedded (Fira Sans, Anonymous Pro: SIL OFL, fonts/). */
 #pragma once
 #include <juce_audio_utils/juce_audio_utils.h>
 
@@ -40,6 +38,7 @@ public:
 };
 
 void drawPanel(juce::Graphics &, juce::Rectangle<float> r);
+void drawWear(juce::Graphics &, juce::Rectangle<float> r);   /* over the print: scratches, scuffs, chips, grime */
 void drawScrew(juce::Graphics &, juce::Point<float> c, float r);
 void drawSection(juce::Graphics &, juce::Rectangle<float> r, const juce::String &title, Sec s);
 void drawKnob(juce::Graphics &, juce::Rectangle<float> r, float pos, KS style, bool bipolar, bool ticks);
@@ -53,5 +52,5 @@ void drawLegend(juce::Graphics &, const juce::String &, juce::Rectangle<float>, 
                 juce::Colour c = juce::Colours::transparentBlack);
 void drawTag(juce::Graphics &, juce::Rectangle<float> r);   /* the maker's tag (res/swtdr34mz-tag.png), in the print */
 void drawLogo(juce::Graphics &, juce::Rectangle<float> r);
-const juce::Colour RED_LED{0xffff3b24}, AMBER_LED{0xffffb020}, BLUE_LED{0xff3aa6ff};
+const juce::Colour RED_LED{0xffff4a24}, AMBER_LED{0xffffa820}, BLUE_LED{0xffffa820};
 } // namespace s23

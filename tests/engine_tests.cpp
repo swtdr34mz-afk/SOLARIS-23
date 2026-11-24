@@ -184,6 +184,36 @@ int main(int argc, char **argv)
         }
     }
 
+    /* VCO A and B on the same note never lock their phases: a TUNE turned while playing and turned back used to
+       leave the two at a new loudness (up to 3.5 dB). Now they drift like analog VCOs and the level stays put. */
+    for (int run = 0; run < 6; run++) {
+        Engine e;
+        e.prepare(44100.0);
+        for (int i = 0; i < NPARAMS; i++)
+            e.set(i, PARAMS[i].def);
+        e.noteOn(57, 0.8f);
+        std::vector<float> L(441), R(441);
+        auto level = [&](int windows) {
+            double q = 0;
+            for (int w = 0; w < windows; w++) {
+                e.render(L.data(), R.data(), 441);
+                for (int i = 0; i < 441; i++)
+                    q += (double)L[(size_t)i] * L[(size_t)i] + (double)R[(size_t)i] * R[(size_t)i];
+            }
+            return 10.0 * std::log10(q / (windows * 882.0) + 1e-12);
+        };
+        level(200);
+        double before = level(300);
+        for (int k = 0; k < 100; k++) {          /* TUNE: out and back in one second */
+            e.set(VA_TUNE, 0.5f + 0.02f * (float)(run + 1) * (float)std::sin(3.14159 * k / 100.0));
+            level(1);
+        }
+        e.set(VA_TUNE, 0.5f);
+        level(50);
+        double after = level(300);
+        CHECK(std::fabs(after - before) < 1.5, "TUNE turned and back: %.2f dB -> %.2f dB", before, after);
+    }
+
     /* every program at three rates: it sounds, nothing over 1, nothing not a number */
     for (int p = 0; p < numPresets(); p++)
         for (double rate : {44100.0, 48000.0, 96000.0}) {

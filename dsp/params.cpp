@@ -158,6 +158,14 @@ void paramText(int i, float v, char *out, int n)
     case VA_TUNE: case VB_TUNE:
         std::snprintf(out, (size_t)n, "%+.2f st", map::vcoTune(v));
         return;
+    default:
+        break;
+    }
+    if (i >= PLATE_1 && i <= PLATE_12) {   /* a plate's offset from its note */
+        std::snprintf(out, (size_t)n, "%+.2f st", map::bip(v) * 12.0f);
+        return;
+    }
+    switch (i) {
     case VA_A: case VB_A:
         secs(map::vcoAttack(v));
         return;

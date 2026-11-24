@@ -104,23 +104,59 @@ private:
     juce::ParameterAttachment att;
 };
 
-/* the touch plates: twelve notes from C, the octave chosen by the two buttons */
+/* the touch plates: twelve plates from C, the octave chosen by the two buttons, each plate tuned by its PLATE
+ * parameter (+-12 semitones, free or in semitones as TUNE GRID says). EDIT: a click selects a plate (it sounds, and
+ * keeps sounding while it is selected, so its tuning is heard while the NOTE knob turns) */
 class Plates : public juce::Component
 {
 public:
-    explicit Plates(juce::MidiKeyboardState &);
+    Plates(juce::MidiKeyboardState &, APVTS &, int channel);
+    ~Plates() override;
     void paint(juce::Graphics &) override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
+    void setEdit(bool on);
+    bool editing() const { return edit; }
+    int selectedPlate() const { return selected; }
+    juce::String plateName(int i) const;   /* the note it plays now: "D3 +14 ct" */
+    std::function<void()> onSelect;
     int octave = 3;                      /* C3 (48) */
 
 private:
     juce::MidiKeyboardState &ks;
+    APVTS &apvts;
+    int channel;
+    bool edit = false;
+    int selected = -1, preview = -1;
     int held = -1;
+    void select(int i);
+    float offset(int i) const;           /* semitones */
+    int baseNote(int i) const { return octave * 12 + 12 + i; }
     int plateAt(juce::Point<float>) const;
     juce::Rectangle<float> plate(int i) const;
     juce::Rectangle<float> arrow(int dir) const;
+};
+
+/* EDIT and NOTE for the plates: the switch, the knob that tunes the selected plate, its note in an LCD */
+class PlateEditor : public juce::Component, private juce::Timer
+{
+public:
+    PlateEditor(Plates &, APVTS &, Touch *);
+    void paint(juce::Graphics &) override;
+    void resized() override;
+    void mouseDown(const juce::MouseEvent &) override;
+
+private:
+    void timerCallback() override;
+    Plates &plates;
+    APVTS &apvts;
+    Touch *touch;
+    juce::Slider knob;
+    juce::RangedAudioParameter *param() const;
+    juce::Rectangle<float> editBox() const { return {6.0f, 22.0f, 40.0f, 40.0f}; }
+    juce::Rectangle<float> knobBox() const { return {60.0f, 8.0f, 78.0f, 78.0f}; }
+    juce::Rectangle<float> lcdBox() const { return {6.0f, 92.0f, (float)getWidth() - 12.0f, 20.0f}; }
 };
 
 /* anything lit: a lambda's 0..1 */

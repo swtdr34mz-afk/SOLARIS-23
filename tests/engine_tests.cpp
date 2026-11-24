@@ -172,7 +172,7 @@ int main(int argc, char **argv)
             CHECK(t[0] != 0, "%s: no text", PARAMS[i].id);
         }
     }
-    CHECK(NPARAMS == 200, "the parameters' count changed: %d (append only)", NPARAMS);
+    CHECK(NPARAMS == 212, "the parameters' count changed: %d (append only)", NPARAMS);
 
     /* no program opens a drone by itself */
     {
@@ -256,6 +256,28 @@ int main(int argc, char **argv)
             e.set(VOLUME, 1);
         });
         CHECK(s.finite && s.peak <= 1.0, "all at once: peak %.3f", s.peak);
+    }
+
+    /* the touch plates: a plate tuned an octave up plays as the key an octave up; untuned, as its key */
+    {
+        auto run = [](int note, bool plate, float tune) {
+            Engine e;
+            e.prepare(44100.0);
+            std::vector<float> v(NPARAMS);
+            presetValues(0, v.data());
+            for (int i = 0; i < NPARAMS; i++)
+                e.set(i, v[i]);
+            e.set(BLEND, 0.0f);
+            e.set(PLATE_1, tune);
+            e.prepare(44100.0);          /* (again: every knob at its value, no glide to it) */
+            std::vector<float> L(44100), R(44100);
+            e.noteOn(note, 0.8f, plate);
+            e.render(L.data(), R.data(), 44100);
+            return L;
+        };
+        CHECK(run(48, true, 1.0f) == run(60, false, 0.5f), "a plate tuned +12 is not the key an octave up");
+        CHECK(run(48, true, 0.5f) == run(48, false, 0.5f), "an untuned plate is not its key");
+        CHECK(run(48, false, 1.0f) == run(48, false, 0.5f), "a key followed a plate's tuning");
     }
 
     /* panic: silent at once */

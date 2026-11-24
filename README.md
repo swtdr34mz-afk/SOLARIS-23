@@ -36,6 +36,9 @@ Eight voices into a stereo mixer, a dual 12 dB filter, a stereo distortion and a
   | AURORA | RINGMOD | S&H RING | FOLD |
   | DUST | CRUSH | VINYL | RADIO |
 
+- **Touch plates, tuned:** EDIT (beside the plates) on, click a plate: it is selected and keeps sounding; turn NOTE
+  to tune it up to 12 semitones up or down, freely (microtonal) or in semitones (TUNE GRID SEMI). Each plate's note is
+  printed under it; the tunings are kept with the project and your own presets. MIDI keys stay in equal temperament.
 - **TUNE GRID:** FREE (microtonal, as the instrument) or SEMI (every drone oscillator on the nearest semitone).
 - **16 programs**, and your own (SAVE: files in `Documents/SOLARIS-23/Presets`).
 
@@ -62,7 +65,7 @@ Trotzdem ausführen*.
 
 ## In the plugin
 
-- **Every parameter** (200) is a host parameter: automatable, saved with the project. The order and the ids are
+- **Every parameter** (212) is a host parameter: automatable, saved with the project. The order and the ids are
   permanent (`dsp/params_list.inc`, made by `tools/gen_params.py`; new ones only at the end).
 - **MIDI in:** notes (the VCOs), velocity, pitch bend (BEND), CC 1 (more of the joystick's Y destination),
   CC 120/123. The touch plates on the panel play the same; their arrows choose the octave.

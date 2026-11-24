@@ -215,6 +215,11 @@ void SolarisProcessor::setStateInformation(const void *data, int sizeInBytes)
             uiScale = juce::jlimit(0.5f, 1.5f, (float)state.getProperty("uiScale", 0.8f));
             uiFinish = juce::jlimit(0, 4, (int)state.getProperty("uiFinish", 0));
             apvts.replaceState(state);
+            /* every value told to the host again (a value the state left as it was is not sent by replaceState,
+             * and the host may hold another for it: a switch set to 0.86 by a host stays 0.86 there otherwise) */
+            for (auto *p : getParameters())
+                if (auto *rp = dynamic_cast<juce::RangedAudioParameter *>(p))
+                    rp->setValueNotifyingHost(rp->getValue());
         }
 }
 

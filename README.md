@@ -1,7 +1,7 @@
 # SOLARIS-23
 
 A microtonal drone and ambient machine as a plugin: a **VST3** and a **standalone app** for Windows (the Mac build is
-ready in the workflow), and the same engine on **Akai MPC** standalone hardware. By **swtdr34mz**.
+ready in the workflow). By **swtdr34mz**. (A version for the M-Vave FM-1 is its own project.)
 
 ![SOLARIS-23](docs/panel.png)
 
@@ -45,7 +45,7 @@ makers, and no part of their designs, names or panels.
 ## Download
 
 [Actions](https://github.com/swtdr34mz-afk/SOLARIS-23/actions) → the newest green run → **Artifacts** at the bottom:
-`SOLARIS23-Windows` (VST3 + app) or `SOLARIS23-MPC` (a GitHub sign-in is needed for artifacts). A release (a tag
+`SOLARIS23-Windows` (VST3 + app; a GitHub sign-in is needed for artifacts). A release (a tag
 `v0.1.0` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
 
 ## Installieren (kurz auf Deutsch)
@@ -60,17 +60,6 @@ makers, and no part of their designs, names or panels.
 Windows SmartScreen kann beim ersten Start der App warnen (sie ist nicht signiert): *Weitere Informationen →
 Trotzdem ausführen*.
 
-**MPC (MPC XL, Live III und die 32-bit-MPCs):**
-1. MPC OS **3.10.1 oder neuer**. Auf der MPC: **Preferences → Enhancements (Beta) → Enable Enhancements** und
-   **External Plugin Support** einschalten.
-2. Den Ordner **`swtdr34mz - VST - SOLARIS-23`** (aus `SOLARIS23-MPC.zip`) auf einen USB-Stick, eine SD-Karte oder
-   das interne Laufwerk kopieren, in einen Ordner **`VST2 Plugins`** ganz oben auf dem Laufwerk.
-3. Die MPC neu starten; SOLARIS-23 steht bei den Plugin-Instrumenten (swtdr34mz).
-
-Auf der MPC: die Funktionstasten **DRONES** (noch mal drücken: DRONE 4/5), **CHAOS**, **VCO**, **MOD** (noch mal:
-SEQ/KEYS), **MIX/FX**; die 16 Q-Links drehen auf jeder Seite die vier Reihen. Die Pads spielen die VCOs, die
-Drone-Tasten sitzen auf SEQ/KEYS (und in jedem Drone-Feld).
-
 ## In the plugin
 
 - **Every parameter** (194) is a host parameter: automatable, saved with the project. The order and the ids are
@@ -79,7 +68,9 @@ Drone-Tasten sitzen auf SEQ/KEYS (und in jedem Drone-Feld).
   CC 120/123. The touch plates on the panel play the same; their arrows choose the octave.
 - **The host's tempo** clocks the sequencer when its CLOCK is a note value; while the host plays, it locks to its
   position.
-- **The panel:** drag a knob (SHIFT: fine), double-click for its default, right-click a choice for its list. Click a
+- **The panel:** one powder-coated metal panel, black print, plastic caps, metal toggles, the drone keys, the light
+  sensors and a black touch field, after the drone machines it is inspired by. Click the name (top left) for the
+  panel's finish: ORANGE, YELLOW, WHITE, BLUE, PINK (kept with the project). Drag a knob (SHIFT: fine), double-click for its default, right-click a choice for its list. Click a
   cartridge for all 24 programs, its lamps 1-2-3 for the cartridge's programs. The joystick: drag, double-click to
   centre. The window's corner sizes it (kept with the project).
 
@@ -103,11 +94,10 @@ cmake --build build --config Release
 The engine's tests alone (no JUCE): `cmake -S tests -B build-tests && cmake --build build-tests && build-tests/engine_tests`
 (`engine_tests bench` for the CPU, `engine_tests render <program> <seconds> <out.wav>` to listen).
 
-The MPC: `python3 mpc/build.py --sdk /path/to/mpc-plugin-builder-sdk` (see `mpc/`). Its skin is drawn with the VST's
-own code: `mpc/skin/` (only when the panel changes; the result, `mpc/plugin/skins/`, is in the repository).
+A picture of the panel without a host: `tools/panel/` (`s23_panel docs/panel.png`).
 
-GitHub Actions (`.github/workflows/build.yml`) runs the engine's tests, builds the MPC plugin (Akai's SDK, pinned)
-and checks it with its validator and `mpc/test/mpc_host_test.cpp`, builds Windows and checks the VST3 with pluginval.
+GitHub Actions (`.github/workflows/build.yml`) runs the engine's tests, builds Windows and checks the VST3 with
+pluginval.
 
 ## Licence
 

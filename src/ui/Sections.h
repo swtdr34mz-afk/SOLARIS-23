@@ -1,15 +1,14 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* The panel's sections, each built at a place on a page: the VST's panel lays them all out (PluginEditor.cpp), the
- * MPC's skin renderer (mpc/skin/) lays a few out per page, larger. Every control is a child of the page; the page
- * draws the sections' plates and the static labels. */
+/* The panel's sections, each built at its place on the page (PluginEditor.cpp lays them out). Every control is a
+ * child of the page; the page draws the panel, the sections' frames and the printed labels. */
 #pragma once
 #include "Controls.h"
 #include "PluginProcessor.h"
 
 namespace s23
 {
-/* the levels the panel shows (the processor's meters; on the MPC renderer: zero) */
+/* the levels the panel shows (the processor's meters) */
 struct Meters {
     std::function<float()> light = [] { return 0.0f; };
     std::function<float(int)> lfo = [](int) { return 0.0f; };
@@ -27,11 +26,12 @@ struct Page : juce::Component {
         juce::Rectangle<float> r;
         juce::String text;
         float size;
-        bool dim;
+        bool vertical;
     };
     std::vector<SecRect> sections;
     std::vector<Text> texts;
-    bool drawFace = true;
+    std::vector<juce::Line<float>> dotted;
+    std::vector<juce::Point<float>> screws;
     std::function<void(juce::Graphics &)> extra;
     void paint(juce::Graphics &g) override;
 };
@@ -42,7 +42,6 @@ struct Builder {
     Touch *touch = nullptr;
     Meters meters;
     juce::MidiKeyboardState *keys = nullptr;
-    bool mpc = false;                    /* the MPC's pages: knobs for the joystick (no pad) */
 
     template <class C> C *add(C *c, juce::Rectangle<int> r)
     {
@@ -50,12 +49,12 @@ struct Builder {
         c->setBounds(r);
         return c;
     }
-    void section(juce::Rectangle<int> r, const juce::String &title, Sec s);
-    void text(juce::Rectangle<int> r, const juce::String &t, float size = 10.5f, bool dim = true);
-    Knob *knob(const char *id, const juce::String &legend, Sec s, juce::Rectangle<int> r, float size = 0.0f);
-    Key *key(const char *id, const juce::String &legend, Sec s, juce::Rectangle<int> r, bool big = false);
+    void section(juce::Rectangle<int> r, const juce::String &title, Sec s = Sec::panel);
+    void text(juce::Rectangle<int> r, const juce::String &t, float size = 10.5f, bool vertical = false);
+    void dots(float x0, float y0, float x1, float y1);
+    Knob *knob(const char *id, const juce::String &legend, KS s, juce::Rectangle<int> r, float size = 0.0f, bool ticks = false);
+    Switch *sw(const char *id, const juce::String &legend, SW s, juce::Rectangle<int> r);
 
-    /* the sections (r: where; each fits the size the VST gives it, and scales) */
     void classic(int drone, juce::Rectangle<int> r);          /* DRONE 1, 2, 4, 5: 300 x 290 */
     void chaos(int drone, juce::Rectangle<int> r);            /* DRONE 3, 6: 300 x 290 */
     void vco(int v, juce::Rectangle<int> r);                  /* 0 A, 1 B: 300 x 290 */

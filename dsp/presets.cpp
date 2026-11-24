@@ -5,8 +5,7 @@
 #include "solaris.h"
 #include "maps.h"
 #include <cmath>
-#include <initializer_list>
-#include <utility>
+#include <vector>
 
 namespace sol
 {
@@ -18,7 +17,7 @@ struct Set {
 };
 struct Program {
     const char *name;
-    std::initializer_list<Set> set;
+    std::vector<Set> set;               /* (a vector: its own storage, on every compiler) */
 };
 
 /* a classic drone's oscillator tuned to a note (MIDI, A4 = 69) plus cents */
@@ -32,7 +31,7 @@ float tune(int osc, float midi, float cents = 0.0f)
 
 #define T(d, o, m, c) Set{"d" #d "_t" #o, tune(o - 1, m, c)}
 
-const Program PROGRAMS[] = {
+const std::vector<Program> PROGRAMS = {
     {"INIT", {{"d1_gate", 1}}},
     {"DUSK CHOIR",
      {T(1, 1, 38, 0), T(1, 2, 45, 3), T(1, 3, 50, -4), T(1, 4, 53, 2), T(1, 5, 57, -3),
@@ -137,7 +136,7 @@ const Program PROGRAMS[] = {
       {"gain", 0.5f}, {"fxl", 15}, {"fxr", 15}, {"fx_x", 0.9f}, {"fx_y", 0.9f}, {"fx_z", 0.6f}, {"blend", 0.7f}}},
 };
 #undef T
-constexpr int N = (int)(sizeof(PROGRAMS) / sizeof(PROGRAMS[0]));
+const int N = (int)PROGRAMS.size();
 } // namespace
 
 int numPresets() { return N; }

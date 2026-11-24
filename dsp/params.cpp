@@ -75,7 +75,13 @@ static bool between(int i, int a, int b) { return i >= a && i <= b; }
 
 void paramText(int i, float v, char *out, int n)
 {
+    if (i < 0 || i >= NPARAMS || n <= 0) {
+        if (n > 0)
+            out[0] = 0;
+        return;
+    }
     const ParamDef &d = PARAMS[i];
+    v = v != v ? 0.0f : v < 0.0f ? 0.0f : v > paramMax(i) ? paramMax(i) : v;   /* (anything a host asks about) */
     if (d.kind == K_CH) {
         int k = (int)std::lround(v);
         k = k < 0 ? 0 : k >= d.nChoices ? d.nChoices - 1 : k;

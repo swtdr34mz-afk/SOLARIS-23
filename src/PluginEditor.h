@@ -20,12 +20,12 @@ private:
     void touched(juce::RangedAudioParameter &) override;
     void programMenu();
     void saveProgram();
+    void finishMenu();
 
     SolarisProcessor &proc;
     s23::Look look;
     s23::Page page;
     juce::RangedAudioParameter *inHand = nullptr;
-    juce::Rectangle<float> progBox, prevBox, nextBox, saveBox, readBox;
     struct Header;
     std::unique_ptr<juce::Component> header;
     std::vector<juce::Component *> lamps;

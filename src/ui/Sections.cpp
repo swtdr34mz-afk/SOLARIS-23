@@ -7,287 +7,290 @@ namespace s23
 using namespace juce;
 using R = Rectangle<int>;
 
+static String U(const char *s) { return String::fromUTF8(s); }
+
 void Page::paint(Graphics &g)
 {
-    if (drawFace)
-        drawPanel(g, getLocalBounds().toFloat());
+    drawPanel(g, getLocalBounds().toFloat());
+    for (auto &p : screws)
+        drawScrew(g, p, 5.0f);
     for (auto &s : sections)
         drawSection(g, s.r, s.title, s.sec);
-    for (auto &t : texts)
-        drawLegend(g, t.text, t.r, t.size, t.dim ? theme().dim : theme().legend);
+    g.setColour(ink().withAlpha(0.7f));
+    for (auto &l : dotted) {
+        float len = l.getLength();
+        for (float t = 0.0f; t < len; t += 5.0f)
+            g.fillEllipse(Rectangle<float>(1.6f, 1.6f).withCentre(l.getPointAlongLine(t)));
+    }
+    for (auto &t : texts) {
+        if (t.vertical) {                /* a bar of the print with the letters standing up (the rows' names) */
+            Graphics::ScopedSaveState s(g);
+            g.addTransform(AffineTransform::rotation(-MathConstants<float>::halfPi, t.r.getCentreX(), t.r.getCentreY()));
+            auto rr = Rectangle<float>(t.r.getHeight(), t.r.getWidth()).withCentre(t.r.getCentre());
+            g.setColour(ink());
+            g.fillRect(rr);
+            g.setColour(panelColour());
+            g.setFont(font(Face::title, t.size));
+            g.drawText(t.text, rr, Justification::centred, false);
+        } else
+            drawLegend(g, t.text, t.r, t.size);
+    }
     if (extra)
         extra(g);
 }
 
 void Builder::section(R r, const String &title, Sec s) { page.sections.push_back({r.toFloat(), title, s}); }
-void Builder::text(R r, const String &t, float size, bool dim) { page.texts.push_back({r.toFloat(), t, size, dim}); }
+void Builder::text(R r, const String &t, float size, bool vertical) { page.texts.push_back({r.toFloat(), t, size, vertical}); }
+void Builder::dots(float x0, float y0, float x1, float y1) { page.dotted.push_back({x0, y0, x1, y1}); }
 
-Knob *Builder::knob(const char *id, const String &legend, Sec s, R r, float size)
+Knob *Builder::knob(const char *id, const String &legend, KS s, R r, float size, bool ticks)
 {
     auto *k = add(new Knob(apvts, id, legend, s, touch), r);
     k->knobSize = size;
+    k->ticks = ticks;
     return k;
 }
 
-Key *Builder::key(const char *id, const String &legend, Sec s, R r, bool big)
+Switch *Builder::sw(const char *id, const String &legend, SW s, R r) { return add(new Switch(apvts, id, legend, s, touch), r); }
+
+static String pid(const char *fmt, int a, int b = 0)
 {
-    return add(new Key(apvts, id, legend, s, touch, big), r);
+    char t[24];
+    std::snprintf(t, sizeof t, fmt, a, b);
+    return t;
 }
 
-/* DRONE 1, 2, 4, 5: five oscillators (on, TUNE, MOD each), VOLT, the key, ATTACK, RELEASE, the light sensor */
+/* DRONE 1, 2, 4, 5: five oscillators in columns (ON, TUNE, MOD: the light), their state in a row of lamps, VOLT,
+ * ATTACK, RELEASE, the light sensor; the key is on the drone keys */
 void Builder::classic(int d, R r)
 {
-    const Sec S = Sec::drone;
     const int x = r.getX(), y = r.getY();
-    section(r, "DRONE " + String(d) + juce::String::fromUTF8("  ·  CLASSIC"), S);
-    auto id = [d](const char *f, int k = 0) {
-        static char b[24];
-        if (k)
-            std::snprintf(b, sizeof b, "d%d_%s%d", d, f, k);
-        else
-            std::snprintf(b, sizeof b, "d%d_%s", d, f);
-        return (const char *)b;
-    };
-    text({x + 4, y + 30, 20, 16}, "ON", 9.0f);
-    text({x + 4, y + 70, 20, 16}, "TUNE", 8.0f);
-    text({x + 4, y + 120, 20, 16}, "MOD", 9.0f);
+    section(r, "DRONE " + String(d));
+    text({x + 4, y + 26, 14, 30}, "ON", 8.5f, true);
+    text({x + 4, y + 60, 14, 46}, "TUNE", 8.5f, true);
+    text({x + 4, y + 110, 14, 30}, "MOD", 8.5f, true);
     for (int k = 1; k <= 5; k++) {
-        int cx = x + 24 + (k - 1) * 40;
-        key(id("on", k), "", S, {cx, y + 28, 40, 24});
-        knob(id("t", k), String(k), S, {cx, y + 54, 40, 58}, 36.0f);
-        key(id("mod", k), "", S, {cx, y + 116, 40, 24});
+        int cx = x + 22 + (k - 1) * 40;
+        text({cx, y + 21, 40, 10}, String(k), 9.5f);
+        sw(pid("d%d_on%d", d, k).toRawUTF8(), "", SW::button, {cx, y + 32, 40, 24});
+        knob(pid("d%d_t%d", d, k).toRawUTF8(), "", KS::black, {cx, y + 60, 40, 44}, 34.0f);
+        sw(pid("d%d_mod%d", d, k).toRawUTF8(), "", SW::buttonGrey, {cx, y + 112, 40, 26});
+        if (k < 5)
+            dots((float)cx + 40.0f, (float)y + 30.0f, (float)cx + 40.0f, (float)y + 140.0f);
     }
-    knob(id("volt"), "VOLT", S, {x + 226, y + 34, 66, 86}, 58.0f);
-    text({x + 226, y + 120, 66, 14}, juce::String::fromUTF8("DOWN  ·  FM"), 8.5f);
-    key(id("gate"), String(d), S, {x + 12, y + 160, 64, 64}, true);
-    text({x + 12, y + 226, 64, 14}, "KEY", 10.0f);
-    knob(id("att"), "ATTACK", S, {x + 82, y + 156, 58, 76}, 46.0f);
-    knob(id("rls"), "RELEASE", S, {x + 142, y + 156, 58, 76}, 46.0f);
-    static const int MIXI[6] = {0, 1, 0, 5, 6, 0};
-    int c = d == 1 ? 0 : d == 2 ? 1 : d == 4 ? 2 : 3;
-    auto lightFn = meters.light;
-    add(new Lamp(Lamp::dome, [lightFn, c] { return jlimit(0.0f, 1.0f, lightFn() * (0.9f + 0.05f * (float)c)); }), {x + 210, y + 150, 80, 80});
-    text({x + 206, y + 232, 88, 14}, "LIGHT SENSOR", 9.0f);
+    /* the five oscillators' state, a row of lamps */
+    for (int k = 1; k <= 5; k++) {
+        auto *p = apvts.getRawParameterValue(pid("d%d_on%d", d, k));
+        add(new Lamp(Lamp::led, [p] { return p->load() >= 0.5f ? 1.0f : 0.0f; }, RED_LED), {x + 226 + (k - 1) * 13, y + 26, 12, 12});
+    }
+    text({x + 222, y + 38, 70, 10}, "1  2  3  4  5", 8.0f);
+    knob(pid("d%d_volt", d).toRawUTF8(), "VOLT", KS::blue, {x + 222, y + 52, 72, 84}, 66.0f, true);
+    text({x + 222, y + 134, 72, 11}, "down  |  fm", 8.5f);
+    dots((float)x + 8.0f, (float)y + 150.0f, (float)r.getRight() - 8.0f, (float)y + 150.0f);
+    knob(pid("d%d_att", d).toRawUTF8(), "ATT", KS::slate, {x + 14, y + 162, 62, 76}, 50.0f, true);
+    knob(pid("d%d_rls", d).toRawUTF8(), "RLS", KS::slate, {x + 80, y + 162, 62, 76}, 50.0f, true);
     auto vf = meters.voice;
-    int mi = MIXI[d - 1];
-    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, secColour(S)), {x + 60, y + 238, 16, 16});
+    static const int MIXI[7] = {0, 0, 1, 0, 5, 6, 0};
+    int mi = MIXI[d];
+    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 66, y + 250, 18, 18});
+    text({x + 16, y + 252, 50, 14}, "level", 9.5f);
+    auto lf = meters.light;
+    add(new Lamp(Lamp::dome, [lf, d] { return jlimit(0.0f, 1.0f, lf() * (0.92f + 0.03f * (float)d)); }), {x + 160, y + 156, 122, 122});
 }
 
-/* DRONE 3, 6: the modulator (RATE, x10), the tone (PITCH, its range), FM (MOD), AM, DIVIDER, NOISE, S&H */
+/* DRONE 3, 6: the modulator (RATE, x1/x10), FM AMT, the tone (PITCH, LOW/HIGH), the switches FM and AM, DIVIDER,
+ * NOISE, S&H, ATTACK, RELEASE */
 void Builder::chaos(int d, R r)
 {
-    const Sec S = Sec::chaos;
     const int x = r.getX(), y = r.getY();
-    section(r, "DRONE " + String(d) + juce::String::fromUTF8("  ·  CHAOS"), S);
-    auto id = [d](const char *f) {
-        static char b[24];
-        std::snprintf(b, sizeof b, "d%d_%s", d, f);
-        return (const char *)b;
-    };
-    knob(id("rate"), "RATE", S, {x + 10, y + 30, 64, 80}, 52.0f);
-    key(id("x10"), "x10", S, {x + 74, y + 40, 40, 40});
-    knob(id("moda"), "FM AMT", S, {x + 116, y + 30, 64, 80}, 52.0f);
-    knob(id("pitch"), "PITCH", S, {x + 184, y + 30, 64, 80}, 52.0f);
-    key(id("hi"), "HIGH", S, {x + 248, y + 40, 44, 40});
-    key(id("fm"), "FM", S, {x + 10, y + 120, 44, 40});
-    key(id("am"), "AM", S, {x + 54, y + 120, 44, 40});
-    knob(id("div"), "DIVIDER", S, {x + 104, y + 114, 62, 76}, 46.0f);
-    knob(id("noise"), "NOISE", S, {x + 166, y + 114, 62, 76}, 46.0f);
-    knob(id("sh"), "S&H", S, {x + 228, y + 114, 62, 76}, 46.0f);
-    key(id("gate"), String(d), S, {x + 12, y + 200, 64, 64}, true);
-    text({x + 12, y + 266, 64, 14}, "KEY", 10.0f);
-    knob(id("att"), "ATTACK", S, {x + 90, y + 196, 62, 80}, 48.0f);
-    knob(id("rls"), "RELEASE", S, {x + 156, y + 196, 62, 80}, 48.0f);
+    section(r, "DRONE " + String(d) + "  CHAOS");
+    auto id = [d](const char *f) { return pid("d%d_", d) + f; };
+    knob(id("rate").toRawUTF8(), "rate", KS::slate, {x + 10, y + 26, 64, 80}, 54.0f, true);
+    sw(id("x10").toRawUTF8(), "x10", SW::toggle, {x + 74, y + 34, 30, 52});
+    knob(id("moda").toRawUTF8(), "fm amt", KS::slate, {x + 106, y + 26, 64, 80}, 54.0f, true);
+    knob(id("pitch").toRawUTF8(), "PITCH", KS::blue, {x + 172, y + 24, 82, 88}, 68.0f, true);
+    sw(id("hi").toRawUTF8(), "high", SW::toggle, {x + 256, y + 34, 34, 52});
+    sw(id("fm").toRawUTF8(), "fm", SW::toggle, {x + 14, y + 120, 34, 52});
+    sw(id("am").toRawUTF8(), "am", SW::toggle, {x + 52, y + 120, 34, 52});
+    knob(id("div").toRawUTF8(), "divider", KS::slate, {x + 92, y + 116, 64, 74}, 48.0f);
+    knob(id("noise").toRawUTF8(), "NOISE", KS::light, {x + 158, y + 116, 64, 74}, 48.0f);
+    knob(id("sh").toRawUTF8(), "S&H", KS::light, {x + 224, y + 116, 64, 74}, 48.0f);
+    dots((float)x + 8.0f, (float)y + 198.0f, (float)r.getRight() - 8.0f, (float)y + 198.0f);
+    knob(id("att").toRawUTF8(), "ATT", KS::slate, {x + 14, y + 206, 62, 76}, 50.0f, true);
+    knob(id("rls").toRawUTF8(), "RLS", KS::slate, {x + 80, y + 206, 62, 76}, 50.0f, true);
     auto vf = meters.voice;
     int mi = d == 3 ? 2 : 7;
-    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, secColour(S)), {x + 236, y + 222, 24, 24});
-    text({x + 222, y + 248, 54, 14}, "LEVEL", 9.0f);
+    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 180, y + 228, 20, 20});
+    text({x + 158, y + 250, 64, 14}, "level", 9.5f);
 }
 
-/* VCO A, B: WAVE (sine .. pulse), PW, TUNE, OCTAVE, SUB; the envelope (HOLD, SELF-GEN); A's SYNC, B's FM */
+/* VCO A, B: WAVEFORM (sine .. pulse), OCTAVE, TUNE, PW, SUB; the envelope and VCA (HOLD, LOOP: self-generating);
+ * A's SYNC, B's FM */
 void Builder::vco(int v, R r)
 {
-    const Sec S = Sec::vco;
     const int x = r.getX(), y = r.getY();
     const char *p = v ? "vb_" : "va_";
-    section(r, v ? "VCO B" : "VCO A", S);
-    auto id = [p](const char *f) {
-        static char b[24];
-        std::snprintf(b, sizeof b, "%s%s", p, f);
-        return (const char *)b;
-    };
-    knob(id("wave"), "WAVEFORM", S, {x + 8, y + 28, 100, 106}, 78.0f)->showValue = true;
-    knob(id("pw"), "PW", S, {x + 112, y + 30, 58, 74}, 46.0f);
-    knob(id("tune"), "TUNE", S, {x + 172, y + 30, 58, 74}, 46.0f);
-    knob(id("oct"), "OCTAVE", S, {x + 232, y + 30, 62, 86}, 44.0f);
-    key(id("sub"), "SUB -1", S, {x + 112, y + 110, 52, 40});
+    section(r, v ? "VCO B" : "VCO A");
+    auto id = [p](const char *f) { return String(p) + f; };
+    knob(id("wave").toRawUTF8(), "waveform", KS::slate, {x + 10, y + 24, 100, 116}, 82.0f, true)->showValue = true;
+    knob(id("oct").toRawUTF8(), "octave", KS::black, {x + 116, y + 24, 72, 84}, 50.0f, true);
+    knob(id("tune").toRawUTF8(), "tune", KS::blue, {x + 196, y + 24, 92, 84}, 60.0f, true);
+    knob(id("pw").toRawUTF8(), "pw", KS::light, {x + 118, y + 110, 58, 60}, 40.0f);
+    sw(id("sub").toRawUTF8(), "sub", SW::toggle, {x + 182, y + 114, 34, 52});
     if (v == 0)
-        key("va_sync", "SYNC", S, {x + 168, y + 110, 52, 40});
+        sw("va_sync", "sync", SW::toggle, {x + 224, y + 114, 34, 52});
     else
-        knob("vb_fm", "FM", S, {x + 168, y + 104, 58, 56}, 36.0f);
-    key(id("hold"), "HOLD", S, {x + 10, y + 150, 50, 40});
-    key(id("loop"), "SELF-GEN", S, {x + 60, y + 150, 56, 40});
-    text({x + 120, y + 162, 170, 14}, "ENVELOPE / VCA", 9.5f);
-    knob(id("a"), "ATTACK", S, {x + 8, y + 198, 70, 80}, 50.0f);
-    knob(id("d"), "DECAY", S, {x + 80, y + 198, 70, 80}, 50.0f);
-    knob(id("s"), "SUSTAIN", S, {x + 152, y + 198, 70, 80}, 50.0f);
-    knob(id("r"), "RELEASE", S, {x + 224, y + 198, 70, 80}, 50.0f);
+        knob("vb_fm", "fm", KS::light, {x + 220, y + 110, 58, 60}, 40.0f);
+    dots((float)x + 8.0f, (float)y + 176.0f, (float)r.getRight() - 8.0f, (float)y + 176.0f);
+    text({x + 10, y + 184, 80, 12}, "EG / VCA", 9.5f);
+    sw(id("hold").toRawUTF8(), "hold", SW::toggle, {x + 150, y + 178, 34, 44});
+    sw(id("loop").toRawUTF8(), "loop", SW::toggle, {x + 192, y + 178, 34, 44});
     auto vf = meters.voice;
     int mi = v ? 4 : 3;
-    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, secColour(S)), {x + 268, y + 156, 22, 22});
+    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 248, y + 188, 18, 18});
+    knob(id("a").toRawUTF8(), "attack", KS::light, {x + 8, y + 220, 70, 64}, 44.0f);
+    knob(id("d").toRawUTF8(), "decay", KS::light, {x + 80, y + 220, 70, 64}, 44.0f);
+    knob(id("s").toRawUTF8(), "sustain", KS::light, {x + 152, y + 220, 70, 64}, 44.0f);
+    knob(id("r").toRawUTF8(), "release", KS::light, {x + 224, y + 220, 70, 64}, 44.0f);
 }
 
-/* the dual effector: the two cartridge slots, X Y Z (shared, each meaning what the programs say), BLEND, VOLUME */
+/* the dual effector: the two cartridge slots, X Y Z (shared; each meaning what the programs say), BLEND, MASTER */
 void Builder::effector(R r)
 {
-    const Sec S = Sec::fx;
     const int x = r.getX(), y = r.getY();
-    section(r, "DUAL EFFECTOR", S);
-    add(new Cartridge(apvts, "fxl", "L", touch), {x + 10, y + 30, 134, 76});
-    add(new Cartridge(apvts, "fxr", "R", touch), {x + 152, y + 30, 134, 76});
+    section(r, "DUAL EFFECTOR");
+    add(new Cartridge(apvts, "fxl", "L", touch), {x + 10, y + 26, 136, 62});
+    add(new Cartridge(apvts, "fxr", "R", touch), {x + 150, y + 26, 136, 62});
     const char *ids[3] = {"fx_x", "fx_y", "fx_z"};
     const char *nm[3] = {"X", "Y", "Z"};
     for (int k = 0; k < 3; k++) {
-        knob(ids[k], nm[k], S, {x + 12 + k * 92, y + 112, 88, 86}, 60.0f);
-        add(new FxLabel(apvts, "fxl", "L", k), {x + 8 + k * 92, y + 198, 96, 13});
-        add(new FxLabel(apvts, "fxr", "R", k), {x + 8 + k * 92, y + 211, 96, 13});
+        knob(ids[k], nm[k], KS::red, {x + 10 + k * 94, y + 96, 88, 90}, 72.0f, true);
+        add(new FxLabel(apvts, "fxl", "L", k), {x + 6 + k * 94, y + 186, 96, 12});
+        add(new FxLabel(apvts, "fxr", "R", k), {x + 6 + k * 94, y + 198, 96, 12});
     }
-    knob("blend", "BLEND", S, {x + 40, y + 222, 70, 64}, 46.0f);
-    knob("volume", "MASTER", S, {x + 186, y + 222, 70, 64}, 46.0f);
+    dots((float)x + 8.0f, (float)y + 214.0f, (float)r.getRight() - 8.0f, (float)y + 214.0f);
+    knob("blend", "BLEND", KS::slate, {x + 40, y + 218, 70, 68}, 50.0f, true);
+    knob("volume", "MASTER", KS::red, {x + 178, y + 216, 80, 70}, 56.0f, true);
 }
 
-/* the mixer: PAN and VOLUME for DRONE 1, 2, 3, VCO A, B, DRONE 4, 5, 6 */
+/* the mixer: PAN and VOL for DRONE 1, 2, 3, VCO A, B, DRONE 4, 5, 6 */
 void Builder::mixer(R r)
 {
-    const Sec S = Sec::mix;
     const int x = r.getX(), y = r.getY();
-    section(r, "MIXER", S);
+    section(r, "VOICE MIXER");
     static const char *const CH[8] = {"d1", "d2", "d3", "va", "vb", "d4", "d5", "d6"};
-    static const char *const NM[8] = {"D1", "D2", "D3", "VA", "VB", "D4", "D5", "D6"};
-    static const Sec SC[8] = {Sec::drone, Sec::drone, Sec::chaos, Sec::vco, Sec::vco, Sec::drone, Sec::drone, Sec::chaos};
+    static const char *const NM[8] = {"D1", "D2", "D3", "VCO A", "VCO B", "D4", "D5", "D6"};
     for (int m = 0; m < 8; m++) {
         int cx = x + 6 + m * 35;
-        knob((String(CH[m]) + "_pan").toRawUTF8(), "", SC[m], {cx, y + 26, 35, 34}, 26.0f);
-        knob((String(CH[m]) + "_vol").toRawUTF8(), "", SC[m], {cx, y + 62, 35, 40}, 32.0f);
+        knob((String(CH[m]) + "_pan").toRawUTF8(), "", KS::black, {cx, y + 26, 35, 32}, 28.0f);
         auto vf = meters.voice;
-        add(new Lamp(Lamp::led, [vf, m] { return vf(m) * 1.6f; }, secColour(SC[m])), {cx + 10, y + 102, 15, 15});
-        text({cx, y + 118, 35, 14}, NM[m], 10.0f, false);
+        add(new Lamp(Lamp::led, [vf, m] { return vf(m) * 1.6f; }, AMBER_LED), {cx + 12, y + 60, 11, 11});
+        text({cx - 2, y + 73, 39, 12}, NM[m], 8.5f);
+        knob((String(CH[m]) + "_vol").toRawUTF8(), "", KS::slate, {cx, y + 88, 35, 44}, 34.0f);
+        if (m < 7)
+            dots((float)cx + 35.0f, (float)y + 26.0f, (float)cx + 35.0f, (float)y + 132.0f);
     }
+    text({x + 216, y + 3, 76, 14}, "pan  /  vol", 8.5f);
 }
 
-/* the dual filter (FREQ, RES, BP each side, LINK), the distortion (DIST, GAIN) */
+/* the dual filter (FREQ, RES, LP/BP each side, LINK), the distortion (DIST, GAIN) between */
 void Builder::filter(R r)
 {
-    const Sec S = Sec::fx;
     const int x = r.getX(), y = r.getY();
-    section(r, juce::String::fromUTF8("FILTER L  ·  DISTORTION  ·  FILTER R"), S);
-    knob("fl_freq", "FREQ", S, {x + 4, y + 26, 50, 64}, 40.0f);
-    knob("fl_res", "RES", S, {x + 52, y + 26, 46, 64}, 36.0f);
-    key("fl_mode", "BP", S, {x + 14, y + 94, 36, 40});
-    key("f_link", "LINK", S, {x + 56, y + 94, 40, 40});
-    knob("dist", "DIST", S, {x + 104, y + 30, 44, 60}, 36.0f);
-    knob("gain", "GAIN", S, {x + 148, y + 30, 44, 60}, 36.0f);
-    knob("fr_res", "RES", S, {x + 198, y + 26, 46, 64}, 36.0f);
-    knob("fr_freq", "FREQ", S, {x + 242, y + 26, 50, 64}, 40.0f);
-    key("fr_mode", "BP", S, {x + 246, y + 94, 36, 40});
-    text({x + 104, y + 96, 88, 14}, juce::String::fromUTF8("LP / BP  ·  12 dB"), 8.5f);
+    section(r, "FILTER L  |  DIST  |  FILTER R");
+    knob("fl_freq", "freq", KS::slate, {x + 4, y + 24, 56, 66}, 46.0f, true);
+    knob("fl_res", "res", KS::slate, {x + 56, y + 24, 50, 66}, 40.0f, true);
+    sw("fl_mode", "bp", SW::toggle, {x + 14, y + 92, 30, 46});
+    sw("f_link", "link", SW::toggle, {x + 64, y + 92, 34, 46});
+    knob("dist", "dist", KS::slate, {x + 108, y + 28, 40, 58}, 32.0f);
+    knob("gain", "gain", KS::slate, {x + 148, y + 28, 40, 58}, 32.0f);
+    text({x + 104, y + 98, 88, 26}, U("lp / bp  12 dB"), 8.5f);
+    knob("fr_res", "res", KS::slate, {x + 190, y + 24, 50, 66}, 40.0f, true);
+    knob("fr_freq", "freq", KS::slate, {x + 236, y + 24, 56, 66}, 46.0f, true);
+    sw("fr_mode", "bp", SW::toggle, {x + 250, y + 92, 30, 46});
 }
 
 void Builder::lfo(int l, R r)
 {
-    const Sec S = Sec::mod;
     const int x = r.getX(), y = r.getY();
     const char *p = l ? "lb_" : "la_";
-    section(r, l ? "LFO B" : "LFO A", S);
-    auto id = [p](const char *f) {
-        static char b[24];
-        std::snprintf(b, sizeof b, "%s%s", p, f);
-        return (const char *)b;
-    };
-    knob(id("wave"), "SQR - TRI", S, {x + 6, y + 26, 60, 62}, 42.0f);
-    knob(id("rate"), "RATE", S, {x + 66, y + 26, 60, 62}, 42.0f);
-    knob(id("range"), "RANGE", S, {x + 128, y + 26, 56, 70}, 34.0f);
-    knob(id("dest"), "DEST", S, {x + 6, y + 92, 80, 56}, 28.0f);
-    knob(id("depth"), "DEPTH", S, {x + 88, y + 90, 56, 58}, 38.0f);
+    section(r, l ? "LFO B" : "LFO A");
+    auto id = [p](const char *f) { return String(p) + f; };
+    knob(id("wave").toRawUTF8(), U("sqr – tri"), KS::slate, {x + 6, y + 22, 60, 66}, 48.0f, true);
+    knob(id("rate").toRawUTF8(), "rate", KS::black, {x + 66, y + 22, 60, 66}, 48.0f, true);
+    knob(id("range").toRawUTF8(), "range", KS::black, {x + 128, y + 22, 56, 72}, 32.0f);
+    knob(id("dest").toRawUTF8(), "dest", KS::black, {x + 6, y + 92, 84, 56}, 26.0f);
+    knob(id("depth").toRawUTF8(), "depth", KS::light, {x + 92, y + 90, 56, 58}, 40.0f);
     auto lf = meters.lfo;
-    add(new Lamp(Lamp::led, [lf, l] { return lf(l); }, secColour(S).brighter(0.4f)), {x + 150, y + 104, 24, 24});
+    add(new Lamp(Lamp::led, [lf, l] { return lf(l); }, BLUE_LED), {x + 152, y + 108, 22, 22});
 }
 
 void Builder::joystick(R r)
 {
-    const Sec S = Sec::mod;
     const int x = r.getX(), y = r.getY();
-    section(r, "JOYSTICK", S);
-    if (mpc) {                           /* (the MPC: X and Y as knobs) */
-        knob("joy_x", "X", S, {x + 8, y + 28, 76, 112}, 64.0f);
-        knob("joy_y", "Y", S, {x + 84, y + 28, 76, 112}, 64.0f);
-    } else
-        add(new XYPad(apvts, "joy_x", "joy_y", touch), {x + 8, y + 28, 150, 116});
-    knob("joy_xdest", "X DEST", S, {x + 166, y + 26, 96, 58}, 30.0f);
-    knob("joy_ydest", "Y DEST", S, {x + 166, y + 88, 96, 58}, 30.0f);
+    section(r, "JOYSTICK");
+    add(new XYPad(apvts, "joy_x", "joy_y", touch), {x + 8, y + 24, 150, 120});
+    knob("joy_xdest", "x dest", KS::light, {x + 166, y + 22, 96, 60}, 30.0f);
+    knob("joy_ydest", "y dest", KS::light, {x + 166, y + 86, 96, 60}, 30.0f);
 }
 
 void Builder::sequencer(R r)
 {
-    const Sec S = Sec::mod;
     const int x = r.getX(), y = r.getY();
-    section(r, "5-STEP SEQUENCER", S);
+    section(r, "5 STEP SEQ.  VOLTAGE");
     for (int s = 1; s <= 5; s++) {
         int cx = x + 6 + (s - 1) * 66;
-        knob(("seq_s" + String(s)).toRawUTF8(), "STEP " + String(s), S, {cx, y + 26, 66, 70}, 50.0f);
-        key(("seq_g" + String(s)).toRawUTF8(), "GATE", S, {cx + 13, y + 98, 40, 40});
+        knob(pid("seq_s%d", s).toRawUTF8(), "step " + String(s), KS::red, {cx, y + 22, 60, 74}, 52.0f, true);
+        sw(pid("seq_g%d", s).toRawUTF8(), "gate", SW::toggle, {cx + 12, y + 98, 30, 48});
         auto st = meters.step;
-        add(new Lamp(Lamp::led, [st, s] { return st() == s - 1 ? 1.0f : 0.0f; }, secColour(S).brighter(0.5f)), {cx + 50, y + 30, 14, 14});
+        add(new Lamp(Lamp::led, [st, s] { return st() == s - 1 ? 1.0f : 0.0f; }, RED_LED), {cx + 44, y + 108, 16, 16});
     }
-    int bx = x + 6 + 5 * 66 + 10;
-    key("seq_run", "RUN", S, {bx, y + 30, 50, 44});
-    knob("seq_rate", "PULSER", S, {bx + 54, y + 26, 64, 70}, 48.0f);
-    knob("seq_stages", "STAGES", S, {bx + 122, y + 26, 60, 70}, 36.0f);
-    knob("seq_clock", "CLOCK", S, {bx + 186, y + 26, 70, 70}, 36.0f);
-    knob("seq_dest", "DEST", S, {bx, y + 90, 90, 56}, 28.0f);
-    knob("seq_depth", "DEPTH", S, {bx + 122, y + 88, 64, 58}, 38.0f);
+    int bx = x + 6 + 5 * 66 + 6;
+    dots((float)bx - 4.0f, (float)y + 24.0f, (float)bx - 4.0f, (float)y + 144.0f);
+    sw("seq_run", "run", SW::toggle, {bx + 6, y + 28, 34, 54});
+    knob("seq_rate", "pulser", KS::slate, {bx + 44, y + 22, 66, 74}, 54.0f, true);
+    knob("seq_stages", "stages", KS::black, {bx + 116, y + 22, 64, 76}, 34.0f);
+    knob("seq_clock", "clock", KS::black, {bx + 184, y + 22, 72, 76}, 34.0f);
+    knob("seq_dest", "dest", KS::black, {bx + 4, y + 92, 92, 56}, 26.0f);
+    knob("seq_depth", "depth", KS::light, {bx + 116, y + 90, 64, 58}, 40.0f);
 }
 
 void Builder::light(R r)
 {
-    const Sec S = Sec::mod;
     const int x = r.getX(), y = r.getY();
-    section(r, "LIGHT", S);
-    knob("light_src", "SOURCE", S, {x + 6, y + 26, 84, 64}, 34.0f);
-    knob("light_rate", "DRIFT", S, {x + 6, y + 90, 60, 58}, 38.0f);
-    knob("light_depth", "DEPTH", S, {x + 70, y + 90, 60, 58}, 38.0f);
-    add(new Lamp(Lamp::dome, meters.light), {x + 116, y + 32, 84, 84});
-    text({x + 110, y + 120, 96, 14}, "the room's light", 9.0f);
+    section(r, "LIGHT SENSOR");
+    knob("light_src", "source", KS::black, {x + 6, y + 22, 88, 66}, 32.0f);
+    knob("light_rate", "drift", KS::slate, {x + 6, y + 90, 60, 58}, 40.0f);
+    knob("light_depth", "depth", KS::light, {x + 66, y + 90, 60, 58}, 40.0f);
+    add(new Lamp(Lamp::dome, meters.light), {x + 112, y + 26, 92, 92});
+    text({x + 106, y + 124, 102, 14}, "the room's light", 9.0f);
 }
 
 void Builder::droneKeys(R r)
 {
-    const Sec S = Sec::keys;
     const int x = r.getX(), y = r.getY();
-    section(r, "DRONE KEYS", S);
-    static const int ORDER[6] = {1, 2, 3, 4, 5, 6};
+    section(r, "DRONE VOICES");
     for (int i = 0; i < 6; i++) {
-        int d = ORDER[i];
-        int cx = x + 12 + (i % 3) * 82, cy = y + 28 + (i / 3) * 54;
-        key(("d" + String(d) + "_gate").toRawUTF8(), String(d), (d == 3 || d == 6) ? Sec::chaos : Sec::drone, {cx, cy, 76, 50}, true);
+        int d = i + 1;
+        int cx = x + 14 + (i % 3) * 80, cy = y + 24 + (i / 3) * 56;
+        sw(pid("d%d_gate", d).toRawUTF8(), String(d), SW::key, {cx, cy, 72, 56});
     }
 }
 
 void Builder::global(R r)
 {
-    const Sec S = Sec::mix;
     const int x = r.getX(), y = r.getY();
-    section(r, juce::String::fromUTF8("KEYS  ·  TUNING"), S);
-    knob("glide", "GLIDE", S, {x + 6, y + 28, 64, 74}, 48.0f);
-    knob("bend", "BEND", S, {x + 74, y + 28, 64, 82}, 40.0f);
-    knob("grid", "TUNE GRID", S, {x + 140, y + 28, 66, 82}, 40.0f);
-    text({x + 6, y + 112, 200, 24}, juce::String::fromUTF8("FREE: microtonal  ·  SEMI: semitones"), 9.0f);
+    section(r, "KEYS  /  TUNING");
+    knob("glide", "glide", KS::slate, {x + 6, y + 22, 64, 78}, 50.0f, true);
+    knob("bend", "bend", KS::black, {x + 74, y + 22, 64, 82}, 36.0f);
+    knob("grid", "tune grid", KS::black, {x + 140, y + 22, 66, 82}, 36.0f);
+    text({x + 6, y + 110, 200, 24}, U("free: microtonal  ·  semi: semitones"), 9.0f);
 }
 
 void Builder::plates(R r)
 {
-    section(r, juce::String::fromUTF8("TOUCH PLATES  ·  VCO A + B"), Sec::keys);
+    section(r, "TOUCH SENSITIVE CONTROLLER", Sec::field);
     if (keys)
-        add(new Plates(*keys), r.withTrimmedTop(24).reduced(8, 4));
+        add(new Plates(*keys), r.withTrimmedTop(22).reduced(8, 4));
 }
 } // namespace s23

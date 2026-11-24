@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* The panel's controls, each tied to host parameters: a knob (on a choice it steps and shows the choice), a key
- * (a switch, with its LED), the joystick (X and Y), a cartridge slot (an effect program), the touch plates, the light
- * sensor, an LED. Touching one reports it, for the readout. */
+/* The panel's controls, each tied to host parameters: a knob (on a choice it steps, its value in a small LCD), a
+ * switch (a metal toggle, a round push button, a drone key), the joystick (X and Y), a cartridge slot (an effect
+ * program), the touch plates, a lamp (an LED, the light sensor). Touching one reports it, for the readout. */
 #pragma once
 #include "Look.h"
 
@@ -18,38 +18,36 @@ struct Touch {
 class Knob : public juce::Slider
 {
 public:
-    Knob(APVTS &, const juce::String &id, const juce::String &legend, Sec sec, Touch *);
+    Knob(APVTS &, const juce::String &id, const juce::String &legend, KS style, Touch *);
     void paint(juce::Graphics &) override;
     void mouseEnter(const juce::MouseEvent &) override;
     void mouseDown(const juce::MouseEvent &) override;
     juce::RangedAudioParameter &param;
     juce::String legend;
-    Sec sec;
-    bool showValue = false;              /* the value's text under the legend (a choice: always) */
+    KS style;
+    bool ticks = false;                  /* a printed scale around it */
+    bool showValue = false;              /* the value in an LCD under it (a choice: always) */
     float knobSize = 0.0f;               /* 0: as large as fits */
-    int paintMode = 0;                   /* (the MPC skin's renderer: 1 the legend only, 2 all but the legend) */
-    float legendHeight() const { return legend.isNotEmpty() ? 13.0f : 0.0f; }
     juce::Rectangle<float> knobArea() const;
 
 private:
+    bool bipolar = false;
     Touch *touch;
     std::unique_ptr<APVTS::SliderAttachment> att;
 };
 
-class Key : public juce::Component
+class Switch : public juce::Component
 {
 public:
-    Key(APVTS &, const juce::String &id, const juce::String &legend, Sec sec, Touch *, bool big = false);
+    Switch(APVTS &, const juce::String &id, const juce::String &legend, SW style, Touch *);
     void paint(juce::Graphics &) override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
     void mouseEnter(const juce::MouseEvent &) override;
     juce::RangedAudioParameter &param;
     juce::String legend;
-    Sec sec;
-    bool big;
+    SW style;
     bool on() const { return param.getValue() >= 0.5f; }
-    int paintMode = 0;                   /* (as Knob's) */
 
 private:
     Touch *touch;
@@ -74,8 +72,8 @@ private:
     juce::ParameterAttachment ax, ay;
 };
 
-/* a cartridge slot: the effect program of one side, its cartridge and program number; click for the list, the
- * arrows for the next */
+/* a cartridge slot: the program of one side (the cartridge in the slot, its program in the LCD); click for the list,
+ * the 1-2-3 switch for the cartridge's next program */
 class Cartridge : public juce::Component
 {
 public:
@@ -105,7 +103,7 @@ private:
     juce::ParameterAttachment att;
 };
 
-/* the touch plates: twelve notes from C, an octave chosen by the two arrows */
+/* the touch plates: twelve notes from C, the octave chosen by the two buttons */
 class Plates : public juce::Component
 {
 public:
@@ -129,7 +127,7 @@ class Lamp : public juce::Component
 {
 public:
     enum Kind { led, dome };
-    Lamp(Kind k, std::function<float()> level, juce::Colour c = juce::Colours::orange) : kind(k), level(std::move(level)), col(c)
+    Lamp(Kind k, std::function<float()> level, juce::Colour c = RED_LED) : kind(k), level(std::move(level)), col(c)
     {
         setInterceptsMouseClicks(false, false);
     }
@@ -139,13 +137,10 @@ public:
         if (kind == dome)
             drawDome(g, r, level());
         else
-            drawLed(g, r.getCentre(), jmin(r.getWidth(), r.getHeight()) * 0.28f, level(), col);
+            drawLed(g, r.getCentre(), (r.getWidth() < r.getHeight() ? r.getWidth() : r.getHeight()) * 0.28f, level(), col);
     }
     Kind kind;
     std::function<float()> level;
     juce::Colour col;
-
-private:
-    static float jmin(float a, float b) { return a < b ? a : b; }
 };
 } // namespace s23

@@ -9,48 +9,39 @@ using namespace juce;
 struct SolarisEditor::Header : Component {
     SolarisEditor &ed;
     explicit Header(SolarisEditor &e) : ed(e) {}
-    Rectangle<float> prog() const { return {560.0f, 14.0f, 300.0f, 34.0f}; }
-    Rectangle<float> prev() const { return {520.0f, 14.0f, 34.0f, 34.0f}; }
-    Rectangle<float> next() const { return {866.0f, 14.0f, 34.0f, 34.0f}; }
-    Rectangle<float> save() const { return {908.0f, 14.0f, 64.0f, 34.0f}; }
-    Rectangle<float> read() const { return {1010.0f, 14.0f, 534.0f, 34.0f}; }
+    Rectangle<float> logo() const { return {22.0f, 10.0f, 330.0f, 44.0f}; }
+    Rectangle<float> prog() const { return {560.0f, 15.0f, 300.0f, 32.0f}; }
+    Rectangle<float> prev() const { return {522.0f, 18.0f, 26.0f, 26.0f}; }
+    Rectangle<float> next() const { return {872.0f, 18.0f, 26.0f, 26.0f}; }
+    Rectangle<float> save() const { return {912.0f, 18.0f, 26.0f, 26.0f}; }
+    Rectangle<float> read() const { return {1000.0f, 15.0f, 544.0f, 32.0f}; }
     void paint(Graphics &g) override
     {
-        drawLogo(g, {18.0f, 12.0f, 330.0f, 40.0f});
-        g.setColour(theme().dim);
-        g.setFont(font(Face::label, 11.0f));
-        g.drawText(juce::String::fromUTF8("MICROTONAL DRONE  ·  AMBIENT MACHINE"), Rectangle<float>(360.0f, 14.0f, 160.0f, 34.0f), Justification::centredLeft, true);
-        auto box = [&](Rectangle<float> r) {
-            g.setColour(Colour(0xff0e1018));
-            g.fillRoundedRectangle(r, 5.0f);
-            g.setColour(secColour(Sec::drone).withAlpha(0.35f));
-            g.drawRoundedRectangle(r.reduced(0.5f), 5.0f, 1.0f);
-        };
-        box(prog());
-        g.setColour(secColour(Sec::drone));
-        g.setFont(font(Face::mono, 18.0f));
+        drawLogo(g, logo());
+        drawLegend(g, juce::String::fromUTF8("microtonal drone synthesizer"), {360.0f, 20.0f, 150.0f, 26.0f}, 10.5f);
+        drawLcd(g, prog());
+        g.setColour(lcdText());
+        g.setFont(font(Face::mono, 17.0f));
         int p = ed.proc.getCurrentProgram();
         g.drawText(String(p + 1).paddedLeft('0', 2) + "  " + ed.proc.getProgramName(p), prog().reduced(10.0f, 0.0f),
                    Justification::centredLeft, true);
         for (int d : {-1, 1}) {
             auto a = d < 0 ? prev() : next();
-            drawKey(g, a, false, false, theme().led, false);
+            drawButton(g, a, false, false, false);
             Path t;
-            auto c = a.getCentre();
-            t.addTriangle(c.x + 4.0f * (float)d, c.y, c.x - 3.0f * (float)d, c.y - 6.0f, c.x - 3.0f * (float)d, c.y + 6.0f);
-            g.setColour(theme().legend);
+            auto c = a.getCentre().translated(0.0f, -20.0f);
+            t.addTriangle(c.x + 5.0f * (float)d, c.y, c.x - 4.0f * (float)d, c.y - 5.0f, c.x - 4.0f * (float)d, c.y + 5.0f);
+            g.setColour(ink());
             g.fillPath(t);
         }
-        drawKey(g, save(), false, false, theme().led, false);
-        g.setColour(theme().legend);
-        g.setFont(font(Face::title, 12.0f));
-        g.drawText("SAVE", save(), Justification::centred, false);
-        box(read());
+        drawButton(g, save(), false, false, true);
+        drawLegend(g, "save", save().translated(0.0f, -20.0f), 10.0f);
+        drawLcd(g, read());
         if (ed.inHand) {
-            g.setFont(font(Face::mono, 15.0f));
-            g.setColour(theme().dim);
+            g.setFont(font(Face::mono, 14.0f));
+            g.setColour(lcdText().withAlpha(0.75f));
             g.drawText(ed.inHand->getName(40), read().reduced(12.0f, 0.0f), Justification::centredLeft, true);
-            g.setColour(theme().legend);
+            g.setColour(lcdText());
             g.drawText(ed.inHand->getCurrentValueAsText(), read().reduced(12.0f, 0.0f), Justification::centredRight, true);
         }
     }
@@ -59,18 +50,21 @@ struct SolarisEditor::Header : Component {
         int n = ed.proc.getNumPrograms(), p = ed.proc.getCurrentProgram();
         if (prog().contains(e.position))
             ed.programMenu();
-        else if (prev().contains(e.position))
+        else if (prev().expanded(4.0f).contains(e.position))
             ed.proc.setCurrentProgram((p + n - 1) % n);
-        else if (next().contains(e.position))
+        else if (next().expanded(4.0f).contains(e.position))
             ed.proc.setCurrentProgram((p + 1) % n);
-        else if (save().contains(e.position))
+        else if (save().expanded(4.0f).contains(e.position))
             ed.saveProgram();
+        else if (logo().contains(e.position))
+            ed.finishMenu();
         repaint();
     }
 };
 
 SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), proc(p)
 {
+    setFinish(proc.uiFinish.load());
     setLookAndFeel(&look);
     Builder b{proc.apvts, page, this};
     b.keys = &proc.keyboardState;
@@ -103,12 +97,13 @@ SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), pr
     b.droneKeys({1064, 818, 260, 140});
     b.global({1332, 818, 212, 140});
     page.extra = [](Graphics &g) {
-        drawTag(g, {1340.0f, 966.0f, 200.0f, 26.0f});
-        g.setColour(theme().dim);
-        g.setFont(font(Face::label, 10.5f));
-        g.drawText(juce::String::fromUTF8("SOLARIS-23 by swtdr34mz  ·  unofficial, inspired by the drone machines of the 2020s"), Rectangle<float>(18.0f, 968.0f, 900.0f, 22.0f),
-                   Justification::centredLeft, false);
+        drawTag(g, {1330.0f, 966.0f, 200.0f, 26.0f});
+        drawLegend(g, juce::String::fromUTF8("SOLARIS-23  ·  swtdr34mz  ·  click the name for the panel's finish"),
+                   {24.0f, 968.0f, 520.0f, 22.0f}, 10.0f);
     };
+    for (float sx : {10.0f, 780.0f, 1550.0f})   /* the panel's screws */
+        for (float sy : {10.0f, 990.0f})
+            page.screws.push_back({sx, sy});
     page.setSize(W, H);
     addAndMakeVisible(page);
     header = std::make_unique<Header>(*this);
@@ -171,6 +166,21 @@ void SolarisEditor::programMenu()
             SolarisProcessor::presetFolder().startAsProcess();
         }
         header->repaint();
+    });
+}
+
+void SolarisEditor::finishMenu()
+{
+    PopupMenu m;
+    m.addSectionHeader("THE PANEL'S FINISH");
+    for (int f = 0; f < NFINISH; f++)
+        m.addItem(f + 1, finishName(f), true, f == finish());
+    m.showMenuAsync(PopupMenu::Options().withTargetComponent(header.get()), [this](int r) {
+        if (r > 0) {
+            setFinish(r - 1);
+            proc.uiFinish = r - 1;
+            page.repaint();
+        }
     });
 }
 

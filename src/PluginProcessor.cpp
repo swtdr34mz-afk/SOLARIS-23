@@ -201,6 +201,7 @@ void SolarisProcessor::getStateInformation(juce::MemoryBlock &destData)
     auto state = apvts.copyState();
     state.setProperty("program", program, nullptr);
     state.setProperty("uiScale", uiScale.load(), nullptr);
+    state.setProperty("uiFinish", uiFinish.load(), nullptr);
     if (auto xml = state.createXml())
         copyXmlToBinary(*xml, destData);
 }
@@ -212,6 +213,7 @@ void SolarisProcessor::setStateInformation(const void *data, int sizeInBytes)
             auto state = juce::ValueTree::fromXml(*xml);
             program = juce::jlimit(0, juce::jmax(0, getNumPrograms() - 1), (int)state.getProperty("program", 0));
             uiScale = juce::jlimit(0.5f, 1.5f, (float)state.getProperty("uiScale", 0.8f));
+            uiFinish = juce::jlimit(0, 4, (int)state.getProperty("uiFinish", 0));
             apvts.replaceState(state);
         }
 }

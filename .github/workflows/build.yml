@@ -1,4 +1,4 @@
-# Builds SOLARIS-23 for Windows (VST3, Standalone; the Mac job is ready, commented out) and the MPC on every push. The zips are under the run's "Artifacts"; a tag v* (or a release published on GitHub) also puts them
+# Builds SOLARIS-23 for Windows (VST3, Standalone; the Mac job is ready, commented out) on every push. The zips are under the run's "Artifacts"; a tag v* (or a release published on GitHub) also puts them
 # in its release.
 name: build
 on:
@@ -24,52 +24,6 @@ jobs:
         run: cmake -S tests -B build-tests -DCMAKE_BUILD_TYPE=Release && cmake --build build-tests --parallel 4
       - name: run
         run: build-tests/engine_tests
-
-  # SOLARIS-23 for the MPC (mpc/): the SDK project made from the shared engine, built with Akai's MPC Plugin SDK
-  # (its Zig cross compiler: arm32 and arm64), checked by the SDK's own validator and host simulator and by
-  # mpc/test/mpc_host_test.cpp (the MPC's host contract); the plugin folder zipped with its README
-  mpc:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: the MPC Plugin SDK (pinned)
-        run: |
-          git init -q mpc-sdk
-          git -C mpc-sdk remote add origin https://github.com/inmusic-software/mpc-plugin-builder-sdk
-          git -C mpc-sdk fetch -q --depth 1 origin a5949cf6fe2cbfb95bcbe0ddf1f7ef555e71f2be
-          git -C mpc-sdk checkout -q FETCH_HEAD
-      - name: build (native, arm32, arm64)
-        run: python3 mpc/build.py --sdk mpc-sdk --target all
-      - name: host test (the native build)
-        run: |
-          g++ -std=c++17 -O2 -Impc-sdk/framework mpc/test/mpc_host_test.cpp -ldl -o mpc_host_test
-          ./mpc_host_test "mpc/build/SOLARIS-23/build/native/solaris-23.so"
-      - name: package
-        run: |
-          cd "mpc/build/SOLARIS-23/build"
-          file "swtdr34mz - VST - SOLARIS-23/VST/"*.so
-          cp "../README.md" "swtdr34mz - VST - SOLARIS-23/README.md"
-          zip -qr "$GITHUB_WORKSPACE/SOLARIS23-MPC.zip" "swtdr34mz - VST - SOLARIS-23"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SOLARIS23-MPC
-          path: SOLARIS23-MPC.zip
-      # a tag v*: the same folder as the Open MPC catalog's SDK zip (<Name>-<version>-mpc-sdk.zip; the catalog makes its
-      # installer from it), its version the tag's, checked against plugin.json
-      - name: release (the Open MPC catalog's zip)
-        if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'release' || github.event_name == 'push')
-        run: |
-          v="${GITHUB_REF_NAME#v}"
-          grep -q "\"version\": \"$v\"" mpc/plugin/plugin.json || { echo "::error::plugin.json's version is not $v"; exit 1; }
-          cp SOLARIS23-MPC.zip "SOLARIS-23-$v-mpc-sdk.zip"
-          sha256sum "SOLARIS-23-$v-mpc-sdk.zip"
-      - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'release' || github.event_name == 'push')
-        with:
-          files: SOLARIS-23-*-mpc-sdk.zip
 
   build:
     strategy:

@@ -57,6 +57,7 @@ public:
     std::atomic<float> light{0.0f}, lfo[2], voice[8];
     std::atomic<int> seqStep{0};
     std::atomic<float> uiScale{0.8f};
+    std::atomic<int> uiFinish{0};            /* the panel's finish (Look.h), kept with the project */
 
 private:
     sol::Engine engine;

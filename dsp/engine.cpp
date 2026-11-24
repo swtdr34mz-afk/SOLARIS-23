@@ -22,6 +22,8 @@ const int VCO[2] = {VA_WAVE, VB_WAVE};                 /* (WAVE, PW, TUNE, OCT, 
 /* the mixer's channels: DRONE 1, 2, 3, VCO A, VCO B, DRONE 4, 5, 6 */
 enum { M_D1, M_D2, M_D3, M_VA, M_VB, M_D4, M_D5, M_D6 };
 const int CLASSIC_MIX[4] = {M_D1, M_D2, M_D4, M_D5};
+const int DRONE_NO[4] = {1, 2, 4, 5};
+const int DRONE_EXTRA[4] = {D1_PAN1, D2_PAN1, D4_PAN1, D5_PAN1};   /* (PAN 1-5, TONE, DRIFT, SWIRL) */
 const int CHAOS_MIX[2] = {M_D3, M_D6};
 
 inline float quantHz(float hz)                         /* to the nearest semitone (A = 440) */
@@ -47,7 +49,8 @@ struct AR {
 struct Classic {
     float ph[5] = {}, last[5] = {}, gain[5] = {}, inc[5] = {};
     float drift[5] = {}, driftTarget[5] = {}, driftClock[5] = {};
-    float fm = 0.0f, lp = 0.0f, envA = 0, envR = 0;
+    float fm = 0.0f, lp = 0.0f, lpR = 0.0f, envA = 0, envR = 0, toneA = 0.5f;
+    float pl[5] = {1, 1, 1, 1, 1}, pr[5] = {1, 1, 1, 1, 1}, plT[5] = {1, 1, 1, 1, 1}, prT[5] = {1, 1, 1, 1, 1};
     bool on[5] = {};
     AR env;
 };
@@ -87,15 +90,14 @@ struct Impl {
     int held[32] = {};                   /* (a plate's note: + 128) */
     int noteId = 48;
     int nHeld = 0;
-    float note = 48.0f, glideNote = 48.0f, vel = 1.0f, bendV = 0.0f, wheel = 0.0f;
+    float note = 48.0f, glideNote = 48.0f, vel = 1.0f, bendV = 0.0f, wheel = 0.0f, bendSm = 0.0f, wheelSm = 0.0f;
     bool keyGate = false, seqGate = false, gateNow = false;
 
     /* the modulation */
     float lfoPh[2] = {}, lfoOut[2] = {};
     float seqPh = 0.0f, seqVal = 0.0f, seqGlide = 0.0f, seqGatePh = 0.0f;
     int step = 0;
-    float lightCommon = 0.5f, lightTarget = 0.5f, lightFrom = 0.5f, lightPh = 1.0f;
-    float lightOwn[4] = {0.5f, 0.5f, 0.5f, 0.5f}, lightOwnT[4] = {0.5f, 0.5f, 0.5f, 0.5f}, lightVal[4] = {};
+    float orbPh = 0.0f, orbFree = 0.0f;
     float bus[NDEST] = {};
     double bpm = 120.0, ppq = 0.0;
     uint64_t rendered = 0, ppqAt = 0;   /* samples delivered; when ppq was given */
@@ -180,6 +182,9 @@ void Impl::controls()
         else
             sm[i] = p[i];
     }
+    /* the wheels glide too: a MIDI wheel comes in 128 steps, and each step would jump what it moves */
+    wheelSm += sa * (wheel - wheelSm);
+    bendSm += sa * (bendV - bendSm);
     auto ch_ = [&](int i) { return (int)std::lround(sm[i]); };
     auto sw = [&](int i) { return sm[i] >= 0.5f; };
 
@@ -242,26 +247,24 @@ void Impl::controls()
         startEnvelopes();
     seqGlide += (1.0f - std::exp(-kb / 0.004f)) * (seqVal - seqGlide);
 
-    /* the light sensors: the room's light drifting (each sensor a little its own), or an LFO or the sequencer */
-    lightPh += map::lightHz(sm[LIGHT_RATE]) * kb;
-    if (lightPh >= 1.0f) {
-        lightPh -= std::floor(lightPh);
-        lightFrom = lightTarget;
-        lightTarget = clampf(lightTarget + rng.bi() * 0.6f, 0.0f, 1.0f);
-        for (int s = 0; s < 4; s++)
-            lightOwnT[s] = rng.uni();
-    }
+    /* ORBIT: the phase that carries the drones' oscillators round the stereo field (SWIRL): its own clock, an LFO,
+       or the sequencer (one turn over the source's range) */
     {
-        float t = lightPh * lightPh * (3.0f - 2.0f * lightPh);
-        lightCommon = lightFrom + t * (lightTarget - lightFrom);
+        int src = ch_(ORBIT_SRC);
+        orbFree += map::orbitHz(sm[ORBIT_RATE]) * kb;
+        orbFree -= std::floor(orbFree);
+        float want = src == 1 ? lfoOut[0] : src == 2 ? lfoOut[1] : src == 3 ? seqGlide : orbFree;
+        if (src == 0)
+            orbPh = want;
+        else {                           /* (a square LFO or a sequencer step jumps: the orbit glides there) */
+            float dlt = want - orbPh;
+            dlt -= std::round(dlt);
+            orbPh += (1.0f - std::exp(-kb / 0.06f)) * dlt;
+            orbPh -= std::floor(orbPh);
+        }
+        meterLight = orbPh;              /* (the panel draws the orbit: its phase) */
     }
-    int src = ch_(LIGHT_SRC);
-    for (int s = 0; s < 4; s++) {
-        lightOwn[s] += (1.0f - std::exp(-kb * 0.4f)) * (lightOwnT[s] - lightOwn[s]);
-        float amb = 0.75f * lightCommon + 0.25f * lightOwn[s];
-        lightVal[s] = src == 1 ? lfoOut[0] : src == 2 ? lfoOut[1] : src == 3 ? seqGlide : amb;
-    }
-    meterLight = lightVal[0];
+    const float orbWidth = map::orbitWidth(sm[ORBIT_WIDTH]);
 
     /* the modulation buses */
     for (float &b : bus)
@@ -273,7 +276,7 @@ void Impl::controls()
     send(ch_(LA_DEST), lfoOut[0] * map::bip(sm[LA_DEPTH]));
     send(ch_(LB_DEST), lfoOut[1] * map::bip(sm[LB_DEPTH]));
     send(ch_(JOY_XDEST), map::bip(sm[JOY_X]));
-    send(ch_(JOY_YDEST), clampf(map::bip(sm[JOY_Y]) + wheel, -1.0f, 1.0f));
+    send(ch_(JOY_YDEST), clampf(map::bip(sm[JOY_Y]) + wheelSm, -1.0f, 1.0f));
     if (run && !play)
         send(ch_(SEQ_DEST), seqGlide * map::bip(sm[SEQ_DEPTH]));
     const bool grid = ch_(GRID) == 1;
@@ -286,18 +289,31 @@ void Impl::controls()
         float volt = map::bip(sm[b + 15]);
         float down = volt < 0.0f ? fexp2(volt * 3.0f) : 1.0f;     /* down to three octaves below */
         v.fm = volt > 0.0f ? volt : 0.0f;
-        float light = (lightVal[c] - 0.5f) * 2.0f * sm[LIGHT_DEPTH] * sm[LIGHT_DEPTH] * 7.0f;
+        const int dc = DRONE_NO[c];
+        const float dr = sm[DRONE_EXTRA[c] + 6];                     /* DRIFT: 0.3 is the old negistor's wander */
+        const float driftAmt = 0.0035f * std::pow(dr / 0.3f, 1.5f), driftRate = 0.15f * (0.4f + 2.0f * dr);
+        const float swirl = sm[DRONE_EXTRA[c] + 7];
+        const float mixPan = map::bip(sm[D1_PAN + CLASSIC_MIX[c]]);
+        v.toneA = onePoleCoef(map::droneToneHz(sm[DRONE_EXTRA[c] + 5]), sr);
         for (int k = 0; k < 5; k++) {
-            v.driftClock[k] += kb * 0.15f;
+            v.driftClock[k] += kb * driftRate;
             if (v.driftClock[k] >= 1.0f) {                         /* a negistor never quite holds its note */
                 v.driftClock[k] -= 1.0f;
-                v.driftTarget[k] = rng.bi() * 0.0035f;
+                v.driftTarget[k] = rng.bi() * driftAmt;
             }
+            /* where this oscillator sits: its PAN, carried round by SWIRL (each a fifth of a turn on; all up: the whole circle), the
+               ORBIT's width, the mixer's PAN for the whole drone on top */
+            float pos = map::bip(sm[DRONE_EXTRA[c] + k]), orbit = fsin01(orbPh + 0.2f * (float)k + 0.13f * (float)dc);
+            pos += swirl * (orbit - pos);                          /* (SWIRL all up: the whole circle) */
+            pos = clampf(pos * orbWidth + mixPan, -1.0f, 1.0f);
+            float a01 = 0.5f * (pos + 1.0f);
+            v.plT[k] = std::cos(a01 * PI * 0.5f) * 1.41421f;
+            v.prT[k] = std::sin(a01 * PI * 0.5f) * 1.41421f;
             v.drift[k] += kb * 0.3f * (v.driftTarget[k] - v.drift[k]);
             float hz = map::classicHz(k, sm[b + k]);
             if (grid)
                 hz = quantHz(hz);
-            float semis = droneSemis + (sw(b + 10 + k) ? light : 0.0f);
+            float semis = droneSemis;
             hz *= down * fexp2(semis / 12.0f) * (1.0f + v.drift[k]);
             v.inc[k] = clampf(hz / sr, 0.0f, 0.45f);
             v.on[k] = sw(b + 5 + k);
@@ -334,7 +350,7 @@ void Impl::controls()
             target += (grid ? std::round(seqGlide * 24.0f) : seqGlide * 24.0f) * map::bip(sm[SEQ_DEPTH]);
         glideNote = g < 0.001f ? target : glideNote + (1.0f - std::exp(-kb / (g * 0.35f))) * (target - glideNote);
         static const float BENDST[5] = {0.0f, 1.0f, 2.0f, 7.0f, 12.0f};
-        float common = glideNote + bendV * BENDST[ch_(BEND)] + bus[D_VPITCH] * 12.0f;
+        float common = glideNote + bendSm * BENDST[ch_(BEND)] + bus[D_VPITCH] * 12.0f;
         for (int i = 0; i < 2; i++) {
             Vco &v = vco[i];
             const int b = VCO[i];
@@ -407,19 +423,19 @@ void Impl::block()
     }
     float level[8] = {};
     const float oscRamp = 1.0f / (0.004f * sr);
-    const float dlp = onePoleCoef(9000.0f, sr);
+    const float panGlide = 1.0f - std::exp(-1.0f / (0.01f * sr));   /* (the places glide: no zipper) */
 
     for (int i = 0; i < BLOCK; i++) {
-        float vs[8];
-        /* DRONE 1, 2, 4, 5 */
+        float vs[8], vsR[8];
+        /* DRONE 1, 2, 4, 5: each oscillator in its own place in the stereo field */
         for (int c = 0; c < 4; c++) {
             Classic &v = cl[c];
             if (v.env.v <= 0.0f && !(sm[CLASSIC[c] + 18] >= 0.5f || sm[CLASSIC_HOLD[c]] >= 0.5f)) {   /* (closed and silent: nothing to run) */
-                vs[CLASSIC_MIX[c]] = 0.0f;
+                vs[CLASSIC_MIX[c]] = vsR[CLASSIC_MIX[c]] = 0.0f;
                 level[CLASSIC_MIX[c]] = 0.0f;
                 continue;
             }
-            float sum = 0.0f;
+            float sum = 0.0f, sumR = 0.0f;
             for (int k = 0; k < 5; k++) {
                 float want = v.on[k] ? 1.0f : 0.0f;
                 if (v.gain[k] != want)
@@ -436,11 +452,16 @@ void Impl::block()
                     v.ph[k] -= 1.0f;
                 float s = 2.0f * v.ph[k] - 1.0f - blep(v.ph[k], inc > 1e-6f ? inc : 1e-6f);
                 v.last[k] = s;
-                sum += s * v.gain[k];
+                v.pl[k] += panGlide * (v.plT[k] - v.pl[k]);
+                v.pr[k] += panGlide * (v.prT[k] - v.pr[k]);
+                sum += s * v.gain[k] * v.pl[k];
+                sumR += s * v.gain[k] * v.pr[k];
             }
-            v.lp += dlp * (sum * 0.13f - v.lp);
+            v.lp += v.toneA * (sum * 0.13f - v.lp);
+            v.lpR += v.toneA * (sumR * 0.13f - v.lpR);
             float e = v.env.run((sm[CLASSIC[c] + 18] >= 0.5f || sm[CLASSIC_HOLD[c]] >= 0.5f), v.envA, v.envR);
             vs[CLASSIC_MIX[c]] = v.lp * e;
+            vsR[CLASSIC_MIX[c]] = v.lpR * e;
             level[CLASSIC_MIX[c]] = e;
         }
         /* DRONE 3, 6 */
@@ -580,8 +601,13 @@ void Impl::block()
         float l = 0.0f, r = 0.0f;
         for (int m = 0; m < 8; m++) {
             float g = gStart[m] + gStep[m] * (float)i;
-            l += vs[m] * g * panL[m];
-            r += vs[m] * g * panR[m];
+            if (m == M_D1 || m == M_D2 || m == M_D4 || m == M_D5) {   /* (already placed, the mixer's PAN with them) */
+                l += vs[m] * g;
+                r += vsR[m] * g;
+            } else {
+                l += vs[m] * g * panL[m];
+                r += vs[m] * g * panR[m];
+            }
         }
         L[i] = l;
         R[i] = r;

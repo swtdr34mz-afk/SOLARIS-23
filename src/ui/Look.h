@@ -52,6 +52,7 @@ void drawButton(juce::Graphics &, juce::Rectangle<float> r, bool on, bool down, 
 void drawDroneKey(juce::Graphics &, juce::Rectangle<float> r, bool on, bool down);
 void drawLed(juce::Graphics &, juce::Point<float> c, float r, float level, juce::Colour col);
 void drawDome(juce::Graphics &, juce::Rectangle<float> r, float level);
+void drawOrbit(juce::Graphics &, juce::Rectangle<float> r, float phase);   /* five LEDs round a dark well */
 void drawLcd(juce::Graphics &, juce::Rectangle<float> r);
 void drawLegend(juce::Graphics &, const juce::String &, juce::Rectangle<float>, float size = 11.0f,
                 juce::Colour c = juce::Colours::transparentBlack);

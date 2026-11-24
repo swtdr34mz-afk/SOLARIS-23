@@ -172,7 +172,7 @@ int main(int argc, char **argv)
             CHECK(t[0] != 0, "%s: no text", PARAMS[i].id);
         }
     }
-    CHECK(NPARAMS == 212, "the parameters' count changed: %d (append only)", NPARAMS);
+    CHECK(NPARAMS == 247, "the parameters' count changed: %d (append only)", NPARAMS);
 
     /* no program opens a drone by itself */
     {
@@ -212,6 +212,60 @@ int main(int argc, char **argv)
         level(50);
         double after = level(300);
         CHECK(std::fabs(after - before) < 1.5, "TUNE turned and back: %.2f dB -> %.2f dB", before, after);
+    }
+
+    /* the mod wheel (to FX X) on a reverb: no crackle while it moves (the room's size used to jump with each
+       MIDI step); the sound's roughness with the wheel moving stays near the roughness without */
+    for (int p : {3, 15}) {
+        Engine e;
+        e.prepare(44100.0);
+        load(e, p);
+        e.set(BLEND, 1.0f);
+        std::vector<float> L(64), R(64);
+        float a = 0, b = 0;
+        double still = 0, moving = 0;
+        for (int k = 0; k < 44100 * 8 / 64; k++) {
+            int t = k * 64;
+            bool wh = t > 44100 * 4;
+            if (wh)
+                e.modWheel(std::round((0.5f + 0.5f * std::sin((float)t * 0.00004f)) * 127.0f) / 127.0f);
+            e.render(L.data(), R.data(), 64);
+            for (int i = 0; i < 64; i++) {
+                float d = R[(size_t)i] - 2.0f * a + b;
+                b = a;
+                a = R[(size_t)i];
+                if (t > 44100 * 2)
+                    (wh ? moving : still) += (double)d * d;
+            }
+        }
+        CHECK(moving < still * 2.0 + 0.01, "%s: the mod wheel crackles (%.3f against %.3f)", presetName(p), moving, still);
+    }
+
+    /* the drones' own stereo: one oscillator panned hard left is on the left only; SWIRL carries it round */
+    for (int swirl = 0; swirl < 2; swirl++) {
+        Engine e;
+        e.prepare(44100.0);
+        for (int i = 0; i < NPARAMS; i++)
+            e.set(i, PARAMS[i].def);
+        for (int k = 1; k < 5; k++)
+            e.set(D1_ON1 + k, 0.0f);
+        e.set(D1_PAN1, 0.0f);
+        e.set(D1_PAN, 0.5f);
+        e.set(ORBIT_WIDTH, 1.0f / 1.5f);
+        e.set(D1_SWIRL, swirl ? 1.0f : 0.0f);
+        e.set(ORBIT_RATE, 0.6f);
+        e.set(D1_HOLD, 1.0f);
+        std::vector<float> L(44100 * 6), R(44100 * 6);
+        e.render(L.data(), R.data(), 44100 * 6);
+        double l = 0, r = 0;
+        for (size_t i = 44100; i < L.size(); i++) {
+            l += (double)L[i] * L[i];
+            r += (double)R[i] * R[i];
+        }
+        if (!swirl)
+            CHECK(l > 1.0 && r < l * 1e-4, "PAN 1 hard left: left %.3f right %.6f", l, r);
+        else
+            CHECK(r > l * 0.2, "SWIRL: the oscillator never comes right (left %.3f right %.3f)", l, r);
     }
 
     /* every program at three rates: it sounds, nothing over 1, nothing not a number */

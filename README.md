@@ -8,8 +8,9 @@ and the **app** for the Mac (Apple Silicon and Intel in one file). By **swtdr34m
 Eight voices into a stereo mixer, a dual 12 dB filter, a stereo distortion and a dual effector:
 
 - **DRONE 1, 2, 4, 5 (CLASSIC):** five free-running saw oscillators each (1–2 low, 3 middle, 4–5 high), each with
-  its own TUNE (no semitone grid: tune chords, clusters, beatings), on/off and MOD (the light sensor bends its pitch).
-  VOLT transposes all five down; past the middle they frequency-modulate each other. ATTACK and RELEASE, opened by
+  its own TUNE (no semitone grid: tune chords, clusters, beatings), on/off and PAN (its place in the stereo field).
+  TONE darkens the drone, DRIFT makes its oscillators wander (an old negistor's unsteadiness, up to wobbly), SWIRL
+  carries them round the stereo field with ORBIT (all up: the whole circle, each a fifth of a turn apart). VOLT transposes all five down; past the middle they frequency-modulate each other. ATTACK and RELEASE, opened by
   the drone KEY while it is held, or by HOLD (latched).
 - **DRONE 3, 6 (CHAOS):** a square modulator (RATE, x1/x10) and a Schmitt-trigger tone (PITCH, LOW/HIGH), FM and/or
   AM, a DIVIDER, NOISE into the tone, a S&H of the noise: sirens, birds, surf, wind. KEY and HOLD as above.
@@ -17,8 +18,7 @@ Eight voices into a stereo mixer, a dual 12 dB filter, a stereo distortion and a
   an ADSR each (HOLD: always open; SELF-GEN: the envelope loops like an LFO), A synced to B, B's FM from A. Played by
   the touch plates and MIDI notes (both VCOs the same note), GLIDE, BEND.
 - **Modulation:** LFO A and B (square to triangle, x1/x6/x10), the joystick (X, Y), a 5-step sequencer (GATE per
-  step, 3/4/5 STAGES, its own PULSER or the host's tempo, VCO PLAY plays the VCOs), the light sensor (the room's
-  light drifting, or an LFO or the sequencer). Each source has a DEST: either filter, both, both opposed, the VCOs'
+  step, 3/4/5 STAGES, its own PULSER or the host's tempo, VCO PLAY plays the VCOs). Each source has a DEST: either filter, both, both opposed, the VCOs'
   pitch, PW, wave or FM, the chaos voices, the drones' pitch, the effector's X, Y, Z or BLEND.
 - **Filter:** two 12 dB filters (Polivoks-style: the integrators saturate, the lows stay with the resonance), LP or
   BP each, LINK (the left's modulation moves both). **Distortion:** DIST (its share) and GAIN.
@@ -83,10 +83,13 @@ Trotzdem ausführen*.
   permanent (`dsp/params_list.inc`, made by `tools/gen_params.py`; new ones only at the end).
 - **MIDI in:** notes (the VCOs), velocity, pitch bend (BEND), CC 1 (more of the joystick's Y destination),
   CC 120/123. The touch plates on the panel play the same; their arrows choose the octave.
+- **ORBIT:** what turns the drones' SWIRL: its own RATE (one turn in 100 s up to 0.4 s), LFO A or B, or the
+  sequencer; WIDTH sets how wide the drones spread (0: mono, up to 150%).
+- **The mod wheel** moves the joystick's Y (its DEST); the wheel and pitch bend glide, so nothing crackles.
 - **The host's tempo** clocks the sequencer when its CLOCK is a note value; while the host plays, it locks to its
   position.
-- **The panel:** one powder-coated metal panel, black print, plastic caps, metal toggles, the drone keys, the light
-  sensors and a black touch field, after the drone machines it is inspired by. Click the name (top left) for the
+- **The panel:** one powder-coated metal panel, black print, plastic caps, metal toggles, the drone keys, the orbit
+  rings and a black touch field, after the drone machines it is inspired by. Click the name (top left) for the
   panel's finish: ORANGE, YELLOW, WHITE, BLUE, PINK (kept with the project). Drag a knob (SHIFT: fine), double-click for its default, right-click a choice for its list. Click a
   cartridge for all 24 programs, its lamps 1-2-3 for the cartridge's programs. The joystick: drag, double-click to
   centre. The window's corner sizes it (kept with the project).

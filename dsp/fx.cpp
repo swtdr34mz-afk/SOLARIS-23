@@ -352,9 +352,11 @@ void EffectSlot::run(const float *in, float *wet, int n, float x, float y, float
     }
     case 14: {                           /* FREEZE: a loop that keeps what it holds */
         reverbSet(1.6f, 6.0f, 5000.0f, 0.6f);
-        float h = x >= 0.97f ? 1.0f : x * 0.97f;
+        float hTo = x >= 0.97f ? 1.0f : x * 0.97f;
         float len = (0.1f + 2.4f * y) * sr;
         for (int i = 0; i < n; i++) {
+            frzH += (hTo - frzH) * (30.0f / sr);   /* holding and letting go: over ~30 ms, no hard cut */
+            const float h = frzH;
             dlTime += 0.0002f * (len - dlTime);
             float e = dl.read(dlTime);
             dl.push(in[i] * (1.0f - h) + e * h);

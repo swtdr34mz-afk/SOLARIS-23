@@ -26,6 +26,9 @@ juce::Colour ink();                      /* the print: black, or white on the bl
 juce::Colour lcdText();
 
 enum class Face { label, title, logo, mono };
+/* the fonts and pictures: held from the first editor's opening to the last one's closing */
+void acquireResources();
+void releaseResources();
 juce::Font font(Face f, float height);
 
 class Look : public juce::LookAndFeel_V4

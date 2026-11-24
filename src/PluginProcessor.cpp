@@ -131,10 +131,11 @@ void SolarisProcessor::prepareToPlay(double sampleRate, int)
 
 void SolarisProcessor::handleMidi(const juce::MidiMessage &m)
 {
+    const bool plate = m.getChannel() == PLATE_CHANNEL;   /* (the touch plates play on their own channel) */
     if (m.isNoteOn())
-        engine.noteOn(m.getNoteNumber(), m.getFloatVelocity());
+        engine.noteOn(m.getNoteNumber(), m.getFloatVelocity(), plate);
     else if (m.isNoteOff())
-        engine.noteOff(m.getNoteNumber());
+        engine.noteOff(m.getNoteNumber(), plate);
     else if (m.isPitchWheel())
         engine.bend((float)(m.getPitchWheelValue() - 8192) / 8192.0f);
     else if (m.isAllSoundOff())

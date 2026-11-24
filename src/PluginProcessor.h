@@ -52,7 +52,8 @@ public:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     static juce::String paramId(int i) { return sol::PARAMS[i].id; }
 
-    juce::MidiKeyboardState keyboardState;   /* the touch plates */
+    juce::MidiKeyboardState keyboardState;   /* the touch plates (on PLATE_CHANNEL: tuned by their PLATE params) */
+    static constexpr int PLATE_CHANNEL = 16;
     /* for the panel */
     std::atomic<float> light{0.0f}, lfo[2], voice[8];
     std::atomic<int> seqStep{0};

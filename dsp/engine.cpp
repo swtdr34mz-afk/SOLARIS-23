@@ -83,7 +83,8 @@ struct Impl {
     Vco vco[2];
 
     /* the keys */
-    int held[32] = {};
+    int held[32] = {};                   /* (a plate's note: + 128) */
+    int noteId = 48;
     int nHeld = 0;
     float note = 48.0f, glideNote = 48.0f, vel = 1.0f, bendV = 0.0f, wheel = 0.0f;
     bool keyGate = false, seqGate = false, gateNow = false;
@@ -321,6 +322,10 @@ void Impl::controls()
     {
         float g = map::glide(sm[GLIDE]);
         float target = note;
+        if (noteId >= 128) {             /* a touch plate: its own tuning (TUNE GRID SEMI: whole semitones) */
+            float off = map::bip(sm[PLATE_1 + (noteId & 127) % 12]) * 12.0f;
+            target += grid ? std::round(off) : off;
+        }
         if (play)
             target += (grid ? std::round(seqGlide * 24.0f) : seqGlide * 24.0f) * map::bip(sm[SEQ_DEPTH]);
         glideNote = g < 0.001f ? target : glideNote + (1.0f - std::exp(-kb / (g * 0.35f))) * (target - glideNote);
@@ -637,36 +642,40 @@ void Engine::set(int i, float v)
 }
 float Engine::get(int i) const { return i >= 0 && i < NPARAMS ? d->p[i] : 0.0f; }
 
-void Engine::noteOn(int note, float vel)
+void Engine::noteOn(int note, float vel, bool plate)
 {
+    const int id = (note & 127) + (plate ? 128 : 0);
     for (int i = 0; i < d->nHeld; i++)  /* (the same key again: to the top) */
-        if (d->held[i] == note) {
+        if (d->held[i] == id) {
             for (int k = i; k + 1 < d->nHeld; k++)
                 d->held[k] = d->held[k + 1];
             d->nHeld--;
             break;
         }
     if (d->nHeld < 32)
-        d->held[d->nHeld++] = note;
-    d->note = (float)note;
+        d->held[d->nHeld++] = id;
+    d->noteId = id;
+    d->note = (float)(id & 127);
     d->vel = clampf(vel, 0.0f, 1.0f);
     d->keyGate = true;
     d->gateNow = true;
     d->startEnvelopes();
 }
 
-void Engine::noteOff(int note)
+void Engine::noteOff(int note, bool plate)
 {
+    const int id = (note & 127) + (plate ? 128 : 0);
     for (int i = 0; i < d->nHeld; i++)
-        if (d->held[i] == note) {
+        if (d->held[i] == id) {
             for (int k = i; k + 1 < d->nHeld; k++)
                 d->held[k] = d->held[k + 1];
             d->nHeld--;
             break;
         }
-    if (d->nHeld > 0)
-        d->note = (float)d->held[d->nHeld - 1];
-    else
+    if (d->nHeld > 0) {
+        d->noteId = d->held[d->nHeld - 1];
+        d->note = (float)(d->noteId & 127);
+    } else
         d->keyGate = false;
 }
 

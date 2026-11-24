@@ -347,7 +347,39 @@ void FxLabel::paint(Graphics &g)
 }
 
 /* --------------------------------------------------------------------------------------- Plates --- */
-Plates::Plates(MidiKeyboardState &k) : ks(k) {}
+namespace
+{
+const char *const NOTE_NAME[12] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+}
+
+Plates::Plates(MidiKeyboardState &k, APVTS &s, int ch) : ks(k), apvts(s), channel(ch) {}
+
+Plates::~Plates()
+{
+    if (preview >= 0)
+        ks.noteOff(channel, preview, 0.0f);
+    if (held >= 0)
+        ks.noteOff(channel, held, 0.0f);
+}
+
+float Plates::offset(int i) const
+{
+    float v = apvts.getRawParameterValue("plate_" + String(i + 1))->load();
+    float st = (v - 0.5f) * 24.0f;
+    bool grid = apvts.getRawParameterValue("grid")->load() >= 0.5f;
+    return grid ? std::round(st) : st;
+}
+
+String Plates::plateName(int i) const
+{
+    float pitch = (float)baseNote(i) + offset(i);
+    int n = (int)std::lround(pitch);
+    int ct = (int)std::lround((pitch - (float)n) * 100.0f);
+    String s = String(NOTE_NAME[((n % 12) + 12) % 12]) + String(n / 12 - 1);
+    if (ct != 0)
+        s << " " << (ct > 0 ? "+" : "") << ct << " ct";
+    return s;
+}
 
 Rectangle<float> Plates::arrow(int dir) const
 {
@@ -356,10 +388,10 @@ Rectangle<float> Plates::arrow(int dir) const
     return a.withSizeKeepingCentre(26.0f, 26.0f).translated(0.0f, 8.0f);
 }
 
-/* the plates in a gentle wave */
+/* the plates in a gentle wave, room for their notes below */
 Rectangle<float> Plates::plate(int i) const
 {
-    auto r = getLocalBounds().toFloat().reduced(46.0f, 4.0f);
+    auto r = getLocalBounds().toFloat().reduced(46.0f, 2.0f).withTrimmedBottom(14.0f);
     float w = r.getWidth() / 12.0f;
     static const float H[12] = {0.62f, 0.74f, 0.88f, 0.74f, 0.64f, 0.56f, 0.56f, 0.64f, 0.74f, 0.88f, 0.74f, 0.62f};
     auto p = Rectangle<float>(r.getX() + w * (float)i, r.getY(), w, r.getHeight()).reduced(w * 0.14f, 0.0f);
@@ -379,10 +411,11 @@ void Plates::paint(Graphics &g)
 {
     for (int i = 0; i < 12; i++) {
         auto p = plate(i);
-        bool lit = ks.isNoteOn(1, octave * 12 + 12 + i);
-        if (lit) {
-            g.setColour(AMBER_LED.withAlpha(0.25f));
-            g.fillRect(p.expanded(4.0f));
+        bool lit = ks.isNoteOn(channel, baseNote(i));
+        bool sel = edit && i == selected;
+        if (lit || sel) {
+            g.setColour(AMBER_LED.withAlpha(sel ? 0.4f : 0.25f));
+            g.fillRect(p.expanded(sel ? 5.0f : 4.0f));
         }
         /* brass, darkened with age, rubbed bright where it is touched */
         g.setColour(Colours::black.withAlpha(0.6f));
@@ -411,6 +444,11 @@ void Plates::paint(Graphics &g)
             g.fillEllipse(p.getX() + rnd.nextFloat() * p.getWidth(), p.getY() + rnd.nextFloat() * p.getHeight(), 2.0f + rnd.nextFloat() * 4.0f,
                           2.0f + rnd.nextFloat() * 3.0f);
         }
+        /* the note it plays, printed under it (a tuned plate's in amber) */
+        bool tuned = std::fabs(offset(i)) > 0.004f;
+        g.setColour(sel ? AMBER_LED : tuned ? AMBER_LED.withAlpha(0.85f) : ink().withAlpha(0.75f));
+        g.setFont(font(Face::label, 9.5f));
+        g.drawFittedText(plateName(i), Rectangle<int>((int)p.getX() - 8, getHeight() - 14, (int)p.getWidth() + 16, 13), Justification::centred, 1, 0.7f);
     }
     for (int d : {-1, 1}) {
         auto a = arrow(d);
@@ -426,32 +464,65 @@ void Plates::paint(Graphics &g)
     g.drawText("C" + String(octave), arrow(-1).translated(0.0f, 24.0f), Justification::centred, false);
 }
 
+void Plates::select(int i)
+{
+    if (preview >= 0)                    /* (the plate before: quiet) */
+        ks.noteOff(channel, preview, 0.0f);
+    preview = -1;
+    selected = i;
+    if (edit && i >= 0) {                /* the selected plate sounds while it is selected */
+        preview = baseNote(i);
+        ks.noteOn(channel, preview, 0.8f);
+    }
+    if (onSelect)
+        onSelect();
+    repaint();
+}
+
+void Plates::setEdit(bool on)
+{
+    edit = on;
+    select(on ? jmax(0, selected) : -1);
+}
+
 void Plates::mouseDown(const MouseEvent &e)
 {
     for (int d : {-1, 1})
         if (arrow(d).expanded(6.0f).contains(e.position)) {
+            bool was = edit && selected >= 0;
+            if (was && preview >= 0)
+                ks.noteOff(channel, preview, 0.0f);
+            preview = -1;
             octave = jlimit(0, 7, octave + d);
+            if (was)
+                select(selected);
             repaint();
             return;
         }
     int i = plateAt(e.position);
-    if (i >= 0) {
-        held = octave * 12 + 12 + i;
-        ks.noteOn(1, held, jlimit(0.3f, 1.0f, 1.0f - (e.position.y - plate(i).getY()) / plate(i).getHeight() * 0.6f));
-        repaint();
+    if (i < 0)
+        return;
+    if (edit) {
+        select(i);
+        return;
     }
+    held = baseNote(i);
+    ks.noteOn(channel, held, jlimit(0.3f, 1.0f, 1.0f - (e.position.y - plate(i).getY()) / plate(i).getHeight() * 0.6f));
+    repaint();
 }
 
 void Plates::mouseDrag(const MouseEvent &e)
 {
+    if (edit)
+        return;
     int i = plateAt(e.position);
-    int n = i >= 0 ? octave * 12 + 12 + i : -1;
+    int n = i >= 0 ? baseNote(i) : -1;
     if (n != held && n >= 0) {           /* sliding over the plates: legato */
         int was = held;
         held = n;
-        ks.noteOn(1, held, 0.8f);
+        ks.noteOn(channel, held, 0.8f);
         if (was >= 0)
-            ks.noteOff(1, was, 0.0f);
+            ks.noteOff(channel, was, 0.0f);
         repaint();
     }
 }
@@ -459,8 +530,88 @@ void Plates::mouseDrag(const MouseEvent &e)
 void Plates::mouseUp(const MouseEvent &)
 {
     if (held >= 0)
-        ks.noteOff(1, held, 0.0f);
+        ks.noteOff(channel, held, 0.0f);
     held = -1;
+    repaint();
+}
+
+/* ---------------------------------------------------------------------------------- PlateEditor --- */
+PlateEditor::PlateEditor(Plates &p, APVTS &s, Touch *t) : plates(p), apvts(s), touch(t)
+{
+    knob.setSliderStyle(Slider::RotaryVerticalDrag);
+    knob.setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
+    knob.setRange(0.0, 1.0);
+    knob.setMouseDragSensitivity(400);   /* (two octaves over a long drag: fine enough for cents; SHIFT finer) */
+    knob.setVelocityModeParameters(1.0, 1, 0.0, true, ModifierKeys::shiftModifier);
+    knob.setDoubleClickReturnValue(true, 0.5);
+    knob.setAlpha(0.0f);                 /* (the knob is drawn by paint; the slider only takes the mouse) */
+    addAndMakeVisible(knob);
+    knob.onDragStart = [this] {
+        if (auto *p = param())
+            p->beginChangeGesture();
+    };
+    knob.onDragEnd = [this] {
+        if (auto *p = param())
+            p->endChangeGesture();
+    };
+    knob.onValueChange = [this] {
+        if (auto *p = param()) {
+            p->setValueNotifyingHost((float)knob.getValue());
+            if (touch)
+                touch->touched(*p);
+        }
+        repaint();
+    };
+    plates.onSelect = [this] {
+        if (auto *p = param())
+            knob.setValue(p->getValue(), dontSendNotification);
+        knob.setEnabled(param() != nullptr);
+        repaint();
+    };
+    knob.setEnabled(false);
+    startTimerHz(15);                    /* (a preset or the host may change a tuning) */
+}
+
+RangedAudioParameter *PlateEditor::param() const
+{
+    int i = plates.selectedPlate();
+    return plates.editing() && i >= 0 ? apvts.getParameter("plate_" + String(i + 1)) : nullptr;
+}
+
+void PlateEditor::resized() { knob.setBounds(knobBox().toNearestInt()); }
+
+void PlateEditor::timerCallback()
+{
+    if (auto *p = param())
+        if (!knob.isMouseButtonDown() && std::fabs(knob.getValue() - p->getValue()) > 1e-6)
+            knob.setValue(p->getValue(), dontSendNotification);
+    repaint();
+}
+
+void PlateEditor::paint(Graphics &g)
+{
+    const bool on = plates.editing();
+    drawButton(g, editBox(), on, false, true);
+    g.setColour(ink());
+    g.setFont(font(Face::label, 10.0f));
+    g.drawText("EDIT", editBox().translated(0.0f, 44.0f).withHeight(12.0f), Justification::centred, false);
+    auto *p = param();
+    auto kb = knobBox();
+    drawKnob(g, kb.withTrimmedBottom(14.0f).withSizeKeepingCentre(60.0f, 60.0f), p ? p->getValue() : 0.5f, KS::blue, true, true);
+    g.setColour(ink().withAlpha(on ? 1.0f : 0.45f));
+    g.drawText("NOTE", kb.withTrimmedTop(kb.getHeight() - 13.0f), Justification::centred, false);
+    drawLcd(g, lcdBox());
+    g.setColour(lcdText().withAlpha(on ? 1.0f : 0.35f));
+    g.setFont(font(Face::mono, 11.5f));
+    String t = on && plates.selectedPlate() >= 0 ? "PLATE " + String(plates.selectedPlate() + 1) + "  " + plates.plateName(plates.selectedPlate())
+                                                 : String("EDIT: TUNE A PLATE");
+    g.drawFittedText(t, lcdBox().reduced(6.0f, 0.0f).toNearestInt(), Justification::centredLeft, 1, 0.7f);
+}
+
+void PlateEditor::mouseDown(const MouseEvent &e)
+{
+    if (editBox().expanded(4.0f).contains(e.position))
+        plates.setEdit(!plates.editing());
     repaint();
 }
 } // namespace s23

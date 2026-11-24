@@ -70,8 +70,8 @@ public:
     void prepare(double sampleRate);     /* a fresh engine (not on the audio thread: it sizes the delay lines) */
     void set(int i, float v);            /* a parameter */
     float get(int i) const;
-    void noteOn(int note, float vel);
-    void noteOff(int note);
+    void noteOn(int note, float vel, bool plate = false);   /* plate: a touch plate's, tuned by its PLATE param */
+    void noteOff(int note, bool plate = false);
     void allNotesOff();
     void panic();                        /* silent at once: the voices, the effects' tails */
     void bend(float v);                  /* -1..1 */

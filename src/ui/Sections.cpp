@@ -317,7 +317,10 @@ void Builder::global(R r)
 void Builder::plates(R r)
 {
     section(r, "TOUCH SENSITIVE CONTROLLER", Sec::field);
-    if (keys)
-        add(new Plates(*keys), r.withTrimmedTop(22).reduced(8, 4));
+    if (keys) {
+        auto area = r.withTrimmedTop(22).reduced(8, 4);
+        auto *p = add(new Plates(*keys, apvts, SolarisProcessor::PLATE_CHANNEL), area.withTrimmedRight(160));
+        add(new PlateEditor(*p, apvts, touch), area.removeFromRight(150));
+    }
 }
 } // namespace s23

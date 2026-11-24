@@ -133,6 +133,10 @@ P("BEND", "bend", "BEND RANGE", "Bend Range", "K_CH", "CH_BEND", default=2)
 for d in (1, 2, 4, 5, 3, 6):
     P("D%d_HOLD" % d, "d%d_hold" % d, "DRONE %d HOLD" % d, "D%d Hold" % d, "K_SW", default=0)
 
+# (appended later: the touch plates' own tuning, each plate's offset from its note, +-12 semitones)
+for k in range(1, 13):
+    P("PLATE_%d" % k, "plate_%d" % k, "PLATE %d TUNE" % k, "Plate %d" % k, "K_BIP", default=0.5)
+
 ids = [r[1] for r in rows]
 assert len(ids) == len(set(ids))
 out = os.path.join(ROOT, "dsp", "params_list.inc")

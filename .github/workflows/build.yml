@@ -1,0 +1,103 @@
+# Builds SOLARIS-23 for Windows (VST3, Standalone; the Mac job is ready, commented out) on every push. The zips are under the run's "Artifacts"; a tag v* (or a release published on GitHub) also puts them
+# in its release.
+name: build
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+  release:                               # a release published on GitHub (its tag v*): the zips added to it
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  # the engine's tests (tests/engine_tests.cpp): every program at three rates, any buffer size, every parameter swept,
+  # every effect, all at once; no JUCE needed
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build
+        run: cmake -S tests -B build-tests -DCMAKE_BUILD_TYPE=Release && cmake --build build-tests --parallel 4
+      - name: run
+        run: build-tests/engine_tests
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          # the Mac: GitHub's macOS runners found no machine (Nov 2026); back in with these two lines
+          # - os: macos-26
+          #   name: macOS
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: configure
+        shell: bash
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: build
+        shell: bash
+        run: cmake --build build --config Release --parallel 4
+
+      - name: pluginval (Windows)
+        # the plugin checked as a host would: loading, its parameters fuzzed, state saved and restored, the editor
+        # opened, every buffer size and rate (Tracktion's pluginval, strictness 8)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip -OutFile pluginval.zip
+          Expand-Archive pluginval.zip -DestinationPath pluginval
+          $p = Start-Process -FilePath pluginval/pluginval.exe -ArgumentList '--strictness-level','8','--timeout-ms','600000','--output-dir','pluginval-log','--validate','"build/Solaris23_artefacts/Release/VST3/SOLARIS-23.vst3"' -Wait -PassThru -NoNewWindow
+          Get-ChildItem pluginval-log -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName | Select-Object -Last 60 }
+          if ($p.ExitCode -ne 0) { throw "pluginval failed ($($p.ExitCode))" }
+
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: pluginval-log
+          path: pluginval-log
+          if-no-files-found: ignore
+
+      - name: package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $a = "build/Solaris23_artefacts/Release"
+          $o = "SOLARIS23-Windows"
+          New-Item -ItemType Directory -Force $o | Out-Null
+          Copy-Item -Recurse "$a/VST3/SOLARIS-23.vst3" $o/
+          Copy-Item "$a/Standalone/SOLARIS-23.exe" $o/
+          Copy-Item README.md $o/
+          Compress-Archive -Path $o -DestinationPath SOLARIS23-Windows.zip
+
+      - name: package (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          a="build/Solaris23_artefacts/Release"
+          o=SOLARIS23-macOS
+          mkdir -p $o
+          cp -R "$a/VST3/SOLARIS-23.vst3" "$a/AU/SOLARIS-23.component" "$a/Standalone/SOLARIS-23.app" $o/
+          for b in $o/*.vst3 $o/*.component $o/*.app; do codesign --force --deep -s - "$b"; done
+          lipo -info "$o/SOLARIS-23.vst3/Contents/MacOS/SOLARIS-23"
+          cp README.md $o/
+          ditto -c -k --sequesterRsrc --keepParent $o $o.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SOLARIS23-${{ matrix.name }}
+          path: SOLARIS23-*.zip
+
+      - name: release
+        if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'release' || github.event_name == 'push')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SOLARIS23-*.zip

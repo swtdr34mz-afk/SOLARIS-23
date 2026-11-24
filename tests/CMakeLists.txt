@@ -1,0 +1,11 @@
+# SOLARIS-23's engine tests (no JUCE):  cmake -S tests -B build-tests && cmake --build build-tests && build-tests/engine_tests
+cmake_minimum_required(VERSION 3.22)
+project(SolarisTests CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+set(D ${CMAKE_CURRENT_SOURCE_DIR}/../dsp)
+add_executable(engine_tests engine_tests.cpp ${D}/engine.cpp ${D}/fx.cpp ${D}/params.cpp ${D}/presets.cpp)
+target_include_directories(engine_tests PRIVATE ${D})

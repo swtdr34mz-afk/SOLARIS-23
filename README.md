@@ -1,7 +1,7 @@
 # SOLARIS-23
 
-A microtonal drone and ambient machine as a plugin: a **VST3** and a **standalone app** for Windows (the Mac build is
-ready in the workflow). By **swtdr34mz**. (A version for the M-Vave FM-1 is its own project.)
+A microtonal drone and ambient machine as a plugin: a **VST3** and a **standalone app** for Windows, and **VST3, AU**
+and the **app** for the Mac (Apple Silicon and Intel in one file). By **swtdr34mz**. (A version for the M-Vave FM-1 is its own project.)
 
 ![SOLARIS-23](docs/panel.png)
 
@@ -48,8 +48,8 @@ makers, and no part of their designs, names or panels.
 ## Download
 
 [Actions](https://github.com/swtdr34mz-afk/SOLARIS-23/actions) → the newest green run → **Artifacts** at the bottom:
-`SOLARIS23-Windows` (VST3 + app; a GitHub sign-in is needed for artifacts). A release (a tag
-`v1.1` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
+`SOLARIS23-Windows` (VST3 + app) and `SOLARIS23-macOS` (VST3, AU + app); a GitHub sign-in is needed for artifacts.
+A release (a tag `v1.2` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
 
 ## Installieren (kurz auf Deutsch)
 
@@ -62,6 +62,20 @@ makers, and no part of their designs, names or panels.
 
 Windows SmartScreen kann beim ersten Start der App warnen (sie ist nicht signiert): *Weitere Informationen →
 Trotzdem ausführen*.
+
+**Mac (Ableton Live, Logic, Cubase …; macOS 10.13 oder neuer, Apple Silicon und Intel):**
+1. `SOLARIS23-macOS.zip` per Doppelklick entpacken.
+2. Im Finder *Gehe zu → Gehe zum Ordner …* (⇧⌘G) und `~/Library/Audio/Plug-Ins/` eingeben.
+3. `SOLARIS-23.vst3` in den Ordner `VST3` kopieren, `SOLARIS-23.component` in den Ordner `Components`
+   (Logic und GarageBand nehmen nur das AU, Ableton und Cubase das VST3 oder das AU).
+4. Weil das Plugin nicht bei Apple beglaubigt ist, blockiert macOS es sonst: *Terminal* öffnen und eingeben
+   ```
+   xattr -cr ~/Library/Audio/Plug-Ins/VST3/SOLARIS-23.vst3 ~/Library/Audio/Plug-Ins/Components/SOLARIS-23.component
+   ```
+   (für die App genauso: `xattr -cr /Pfad/zu/SOLARIS-23.app`, oder Rechtsklick → *Öffnen*).
+5. Ableton Live: *Einstellungen → Plug-Ins →* „VST3-Plug-In-Systemordner verwenden“ und „Audio Units“ an,
+   dann *Neu scannen*. SOLARIS-23 steht unter *Plug-Ins → swtdr34mz*.
+   Logic: beim nächsten Start prüft Logic das AU von selbst (unter *Instrumente → AU-Instrumente → swtdr34mz*).
 
 ## In the plugin
 
@@ -100,7 +114,7 @@ The engine's tests alone (no JUCE): `cmake -S tests -B build-tests && cmake --bu
 A picture of the panel without a host: `tools/panel/` (`s23_panel docs/panel.png`).
 
 GitHub Actions (`.github/workflows/build.yml`) runs the engine's tests, builds Windows and checks the VST3 with
-pluginval.
+pluginval, and builds the Mac (universal) and checks the AU with auval.
 
 ## Licence
 

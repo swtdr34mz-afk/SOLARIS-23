@@ -28,7 +28,7 @@ private:
     Delay line[NL];
     float lineLen[NL] = {}, damp[NL] = {}, lfoPh[NL] = {};
     Allpass diff[4];
-    float rvGain[NL] = {}, rvDampA = 0.3f, rvSize = 1.0f, rvMod = 0.0f;
+    float rvGain[NL] = {}, rvDampA = 0.3f, rvSize = 1.0f, rvSizeTo = -1.0f, rvMod = 0.0f;
     float rvShimmer = 0.0f;
     void reverbSet(float size, float t60, float dampHz, float mod);
     float reverb(float x, bool diffuse);

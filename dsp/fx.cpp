@@ -55,6 +55,8 @@ void EffectSlot::clear()
         d->clear();
     for (float &x : damp)
         x = 0.0f;
+    rvSize = 0.0f;                       /* a new effect starts at its own size */
+    rvShimmer = 0.0f;
     for (auto &g : grains)
         g.on = false;
     for (float &a : ap)
@@ -75,11 +77,13 @@ void EffectSlot::select(int fx)
 
 void EffectSlot::reverbSet(float size, float t60, float dampHz, float m)
 {
-    rvSize = clampf(size, 0.25f, MAX_SIZE);
+    rvSizeTo = clampf(size, 0.25f, MAX_SIZE);   /* the size glides there in reverb(): no zipper while turning */
+    if (rvSize <= 0.0f)
+        rvSize = rvSizeTo;
     rvMod = m;
     for (int i = 0; i < NL; i++) {
-        float len = lineLen[i] * rvSize;
-        rvGain[i] = t60 > 90.0f ? 1.0f : std::pow(10.0f, -3.0f * len / (t60 * sr));
+        float len = lineLen[i] * rvSizeTo;      /* "infinite" stays just below 1: it holds, but never runs away */
+        rvGain[i] = t60 > 90.0f ? 0.99995f : std::fmin(0.99995f, std::pow(10.0f, -3.0f * len / (t60 * sr)));
     }
     rvDampA = onePoleCoef(dampHz, sr);
 }
@@ -90,6 +94,8 @@ float EffectSlot::reverb(float x, bool diffuse)
         for (auto &a : diff)
             x = a.run(x, 0.6f);
     float y[NL], s = 0.0f, out = 0.0f;
+    if (rvSizeTo > 0.0f)
+        rvSize += (rvSizeTo - rvSize) * (20.0f / sr);   /* about 50 ms */
     const float modSamples = rvMod * 0.004f * sr;
     for (int i = 0; i < NL; i++) {
         float d = lineLen[i] * rvSize;
@@ -160,7 +166,7 @@ void EffectSlot::run(const float *in, float *wet, int n, float x, float y, float
         reverbSet(1.5f, 1.0f + 20.0f * y * y, 1500.0f * fexp2(3.0f * z), 0.4f);
         const float win = 0.07f * sr;
         for (int i = 0; i < n; i++) {
-            float r = reverb(in[i] + rvShimmer * x * 0.9f, true);
+            float r = reverb(in[i] + ftanh(rvShimmer * x * 0.9f), true);
             ps.push(r);
             rvShimmer = pitchShift(psPh, 2.0f, win);
             wet[i] = r * 1.4f;

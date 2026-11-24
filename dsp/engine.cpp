@@ -69,6 +69,7 @@ struct Vco {
     float a = 0, d = 0, s = 0, r = 0;
     bool hold = false, loop = false;
     bool wrapped = false;
+    float drift = 0.0f, driftTo = 0.0f, driftClock = 0.0f;   /* analog: never exactly in tune */
 };
 } // namespace
 
@@ -139,8 +140,11 @@ void Impl::prepare(float rate)
     }
     for (auto &c : ch)
         c = Chaos();
-    for (auto &v : vco)
-        v = Vco();
+    for (int i = 0; i < 2; i++) {
+        vco[i] = Vco();
+        vco[i].drift = vco[i].driftTo = (i ? -0.02f : 0.02f) + rng.bi() * 0.01f;
+        vco[i].driftClock = rng.uni();
+    }
     for (int i = 0; i < 2; i++) {
         fx[i].prepare(sr, 0x2342u + 77u * (uint32_t)i);
         fx[i].select((int)p[i ? FXR : FXL]);
@@ -334,7 +338,15 @@ void Impl::controls()
         for (int i = 0; i < 2; i++) {
             Vco &v = vco[i];
             const int b = VCO[i];
-            float n = common + (float)(ch_(b + 3) - 2) * 12.0f + map::vcoTune(sm[b + 2]);
+            /* each VCO wanders a few cents on its own, so A and B never lock their phases: tuned together
+               they beat slowly instead of freezing at whatever loudness the last TUNE turn left */
+            v.driftClock += kb * (0.11f + 0.04f * (float)i);
+            if (v.driftClock >= 1.0f) {
+                v.driftClock -= 1.0f;
+                v.driftTo = rng.bi() * 0.035f;
+            }
+            v.drift += kb * 0.25f * (v.driftTo - v.drift);
+            float n = common + (float)(ch_(b + 3) - 2) * 12.0f + map::vcoTune(sm[b + 2]) + v.drift;
             v.inc = clampf(440.0f * fexp2((n - 69.0f) / 12.0f) / sr, 0.0f, 0.45f);
             v.wave = clampf(sm[b] + bus[D_VWAVE] * 0.5f, 0.0f, 1.0f);
             v.pw = clampf(0.05f + 0.9f * sm[b + 1] + bus[D_VPW] * 0.45f, 0.03f, 0.97f);

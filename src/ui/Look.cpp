@@ -30,7 +30,7 @@ const float LANG = std::atan2(LY, LX);   /* its direction on the panel */
 const char *finishName(int) { return "RELIC"; }
 void setFinish(int f) { currentFinish = jlimit(0, NFINISH - 1, f); }
 int finish() { return currentFinish.load(); }
-Colour panelColour() { return Colour(0xff1a1a19); }
+Colour panelColour() { return Colour(0xff1b1b1b); }
 Colour ink() { return BONE; }
 Colour lcdText() { return Colour(0xffffb23e); }
 
@@ -74,54 +74,46 @@ void Look::drawPopupMenuBackground(Graphics &g, int w, int h)
 }
 
 /* ---------------------------------------------------------------------------------- the coat --- */
-/* The powder coat's relief: a height field of four octaves of tileable value noise (bumps of 16, 5.5, 2.2 and 0.9
- * panel units, the orange peel of a rough coat), each pixel's normal lit by the light, and the pigment's own grain.
- * Made at the pixel density it will be shown at (so on an 8K screen every bump is still drawn with real pixels, not a
- * magnified bitmap), kept per density. */
+/* The panel's finish: a black textured (stippled) powder coat on steel, as on the better synthesizers of today: a
+ * dense, even field of tiny round bumps, each about a panel unit across, every one lit from the upper left (a
+ * bright crown, a dark foot), and the pigment's own fine grain between them. No hills, no valleys: at arm's length a
+ * soft matte black, close up a fine, regular pebbling. Made at the pixel density it is shown at (so on an 8K screen
+ * every bump is still drawn with real pixels), kept per density, tiling seamlessly. */
 static Image makeCoat(float sc)
 {
     const int T = 512;
     std::vector<float> h((size_t)(T * T), 0.0f);
     Random rnd(7719);
-    struct Oct {
-        float period, amp;
-    } const oct[] = {{16.0f, 0.45f}, {5.5f, 0.4f}, {2.2f, 0.32f}, {0.9f, 0.26f}};
-    for (auto &o : oct) {
-        int n = jmax(2, (int)std::lround((float)T / (o.period * sc)));
-        std::vector<float> grid((size_t)(n * n));
-        for (auto &v : grid)
-            v = rnd.nextFloat() * 2.0f - 1.0f;
-        const float cell = (float)T / (float)n;
-        for (int y = 0; y < T; y++) {
-            float gy = (float)y / cell;
-            int y0 = (int)gy;
-            float fy = gy - (float)y0;
-            fy = fy * fy * (3.0f - 2.0f * fy);
-            int ya = y0 % n, yb = (y0 + 1) % n;
-            for (int x = 0; x < T; x++) {
-                float gx = (float)x / cell;
-                int x0 = (int)gx;
-                float fx = gx - (float)x0;
-                fx = fx * fx * (3.0f - 2.0f * fx);
-                int xa = x0 % n, xb = (x0 + 1) % n;
-                float a = grid[(size_t)(ya * n + xa)], b = grid[(size_t)(ya * n + xb)];
-                float c = grid[(size_t)(yb * n + xa)], d = grid[(size_t)(yb * n + xb)];
-                h[(size_t)(y * T + x)] += o.amp * (a + (b - a) * fx + (c - a + (a - b - c + d) * fx) * fy);
-            }
+    /* the bumps: jittered on a grid (even, never clumped), a little varied in size and height */
+    const float spacing = jmax(1.6f, 1.05f * sc);
+    const int n = (int)((float)T / spacing);
+    const float cell = (float)T / (float)n;
+    for (int gy = 0; gy < n; gy++)
+        for (int gx = 0; gx < n; gx++) {
+            float cx = ((float)gx + 0.2f + 0.6f * rnd.nextFloat()) * cell, cy = ((float)gy + 0.2f + 0.6f * rnd.nextFloat()) * cell;
+            float rad = cell * (0.42f + 0.18f * rnd.nextFloat()), amp = 0.7f + 0.5f * rnd.nextFloat();
+            int x0 = (int)std::floor(cx - rad * 1.8f), x1 = (int)std::ceil(cx + rad * 1.8f);
+            int y0 = (int)std::floor(cy - rad * 1.8f), y1 = (int)std::ceil(cy + rad * 1.8f);
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) {
+                    float dx = ((float)x - cx) / rad, dy = ((float)y - cy) / rad;
+                    float e = dx * dx + dy * dy;
+                    if (e < 3.2f)
+                        h[(size_t)(((y % T + T) % T) * T + ((x % T + T) % T))] += amp * std::exp(-e);
+                }
         }
-    }
     Image im(Image::ARGB, T, T, true);
     Image::BitmapData bd(im, Image::BitmapData::writeOnly);
-    const float k = 0.30f * sc;          /* (the slope in panel units, whatever the density) */
+    const float k = 0.9f;                /* (a bump's slope: its size is in pixels already) */
     const float ln = std::sqrt(LX * LX + LY * LY + LZ * LZ), lx = LX / ln, ly = LY / ln, lz = LZ / ln;
     for (int y = 0; y < T; y++)
         for (int x = 0; x < T; x++) {
             float dx = h[(size_t)(y * T + (x + 1) % T)] - h[(size_t)(y * T + (x + T - 1) % T)];
             float dy = h[(size_t)(((y + 1) % T) * T + x)] - h[(size_t)(((y + T - 1) % T) * T + x)];
-            float nx = -dx * k, ny = -dy * k, nz = 1.0f, nl = std::sqrt(nx * nx + ny * ny + 1.0f);
-            float shade = (nx * lx + ny * ly + nz * lz) / nl - lz;   /* (flat: 0) */
-            float v = shade * 1.15f + (rnd.nextFloat() - 0.5f) * 0.07f;
-            Colour c = v > 0.0f ? Colour(0xffd9d2c2).withAlpha(jmin(0.13f, v * 0.55f)) : Colours::black.withAlpha(jmin(0.38f, -v * 1.1f));
+            float nx = -dx * k, ny = -dy * k, nl = std::sqrt(nx * nx + ny * ny + 1.0f);
+            float shade = (nx * lx + ny * ly + lz) / nl - lz;
+            float v = shade + (rnd.nextFloat() - 0.5f) * 0.05f;
+            Colour c = v > 0.0f ? Colour(0xffe4e0d6).withAlpha(jmin(0.16f, v * 0.42f)) : Colours::black.withAlpha(jmin(0.5f, -v * 0.85f));
             bd.setPixelColour(x, y, c);
         }
     return im;
@@ -145,12 +137,12 @@ void drawPanel(Graphics &g, Rectangle<float> r)
     g.fillRect(r);
     /* the coat thinner or thicker, a little brown, a little green: large, soft */
     Random rnd(1923);
-    for (int i = 0; i < (int)(r.getWidth() * r.getHeight() / 7000.0f); i++) {
+    for (int i = 0; i < (int)(r.getWidth() * r.getHeight() / 26000.0f); i++) {
         float x = r.getX() + rnd.nextFloat() * r.getWidth(), y = r.getY() + rnd.nextFloat() * r.getHeight();
         float s = 30.0f + rnd.nextFloat() * 160.0f;
         Colour c = rnd.nextFloat() < 0.45f ? Colour(0xff2e2a22) : rnd.nextFloat() < 0.5f ? Colour(0xff0b0b0a) : Colour(0xff222520);
-        ColourGradient cg(c.withAlpha(0.20f), x, y, c.withAlpha(0.0f), x + s, y, true);
-        cg.addColour(0.5, c.withAlpha(0.09f));
+        ColourGradient cg(c.withAlpha(0.07f), x, y, c.withAlpha(0.0f), x + s, y, true);
+        cg.addColour(0.5, c.withAlpha(0.03f));
         g.setGradientFill(cg);
         g.fillEllipse(x - s, y - s, s * 2.0f, s * 2.0f);
     }
@@ -182,13 +174,13 @@ void drawWear(Graphics &g, Rectangle<float> r, float px)
     Random rnd(4242);
     auto P = [&](float mx, float my) { return Point<float>(r.getX() + mx * r.getWidth(), r.getY() + my * r.getHeight()); };
     /* scuffs: the black rubbed thin, the grey primer coming through, in streaks along the rubbing */
-    for (int i = 0; i < 46; i++) {
+    for (int i = 0; i < 18; i++) {
         auto c = P(rnd.nextFloat(), rnd.nextFloat());
         float w = 20.0f + rnd.nextFloat() * 110.0f, h = w * (0.2f + rnd.nextFloat() * 0.4f);
         float ang = rnd.nextFloat() * 3.14f;
         Graphics::ScopedSaveState s(g);
         g.addTransform(AffineTransform::rotation(ang, c.x, c.y));
-        float a = 0.08f + 0.14f * rnd.nextFloat();
+        float a = 0.04f + 0.07f * rnd.nextFloat();
         ColourGradient cg(Colour(0xff6d6a62).withAlpha(a), c.x, c.y, Colour(0xff6d6a62).withAlpha(0.0f), c.x + w * 0.5f, c.y, true);
         g.setGradientFill(cg);
         g.fillEllipse(c.x - w * 0.5f, c.y - h * 0.5f, w, h);
@@ -199,7 +191,7 @@ void drawWear(Graphics &g, Rectangle<float> r, float px)
         }
     }
     /* grime: brown, collected low and in the corners */
-    for (int i = 0; i < 26; i++) {
+    for (int i = 0; i < 10; i++) {
         auto c = P(rnd.nextFloat(), 0.35f + 0.65f * rnd.nextFloat());
         float s = 30.0f + rnd.nextFloat() * 120.0f;
         ColourGradient cg(Colour(0xff3a2a16).withAlpha(0.16f + 0.14f * rnd.nextFloat()), c.x, c.y, Colour(0xff3a2a16).withAlpha(0.0f), c.x + s, c.y, true);

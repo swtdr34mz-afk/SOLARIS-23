@@ -62,6 +62,7 @@ struct SolarisEditor::Header : Component {
 
 SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), proc(p)
 {
+    acquireResources();
     setFinish(proc.uiFinish.load());
     setLookAndFeel(&look);
     Builder b{proc.apvts, page, this};
@@ -124,6 +125,8 @@ SolarisEditor::~SolarisEditor()
     page.removeChildComponent(header.get());   /* (the header is the editor's own; the page deletes the rest) */
     page.deleteAllChildren();
     setLookAndFeel(nullptr);
+    look.setDefaultSansSerifTypeface(nullptr);
+    releaseResources();                  /* (the last editor: the fonts and pictures go now, not at unload) */
 }
 
 void SolarisEditor::resized()

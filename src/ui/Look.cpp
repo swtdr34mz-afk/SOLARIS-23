@@ -34,14 +34,59 @@ Colour panelColour() { return Colour(0xff0f0f0f); }
 Colour ink() { return BONE; }
 Colour lcdText() { return Colour(0xffffb23e); }
 
+/* The fonts and the pictures made once (the coat's relief, the maker's tag): held while an editor is open and let
+ * go when the last one closes (releaseResources). Nothing of them is left for the moment the host unloads the
+ * plugin: on Windows that runs under the loader's lock, and freeing embedded fonts there can deadlock the host
+ * (FL Studio hung on closing). */
+namespace
+{
+struct Res {
+    Typeface::Ptr face[4];
+    Image tag;
+    std::map<int, Image> coat;
+};
+std::mutex resMutex;
+std::unique_ptr<Res> res;
+int users = 0;
+Res &resources()
+{
+    if (!res)
+        res = std::make_unique<Res>();
+    return *res;
+}
+} // namespace
+
+void acquireResources()
+{
+    std::lock_guard<std::mutex> l(resMutex);
+    users++;
+}
+
+void releaseResources()
+{
+    std::unique_ptr<Res> gone;
+    {
+        std::lock_guard<std::mutex> l(resMutex);
+        if (--users > 0)
+            return;
+        users = 0;
+        gone = std::move(res);
+    }
+    gone.reset();                        /* (the fonts, the coat, the tag) */
+    Typeface::clearTypefaceCache();
+    ImageCache::releaseUnusedImages();
+}
+
 static Typeface::Ptr face(Face f)
 {
-    static Typeface::Ptr t[4] = {
-        Typeface::createSystemTypefaceFor(BinaryData::FiraSansSemiBold_ttf, BinaryData::FiraSansSemiBold_ttfSize),
-        Typeface::createSystemTypefaceFor(BinaryData::FiraSansBold_ttf, BinaryData::FiraSansBold_ttfSize),
-        Typeface::createSystemTypefaceFor(BinaryData::FiraSansExtraBold_ttf, BinaryData::FiraSansExtraBold_ttfSize),
-        Typeface::createSystemTypefaceFor(BinaryData::AnonymousProBold_ttf, BinaryData::AnonymousProBold_ttfSize),
-    };
+    std::lock_guard<std::mutex> l(resMutex);
+    auto &t = resources().face;
+    if (!t[0]) {
+        t[0] = Typeface::createSystemTypefaceFor(BinaryData::FiraSansSemiBold_ttf, BinaryData::FiraSansSemiBold_ttfSize);
+        t[1] = Typeface::createSystemTypefaceFor(BinaryData::FiraSansBold_ttf, BinaryData::FiraSansBold_ttfSize);
+        t[2] = Typeface::createSystemTypefaceFor(BinaryData::FiraSansExtraBold_ttf, BinaryData::FiraSansExtraBold_ttfSize);
+        t[3] = Typeface::createSystemTypefaceFor(BinaryData::AnonymousProBold_ttf, BinaryData::AnonymousProBold_ttfSize);
+    }
     return t[(int)f];
 }
 
@@ -121,9 +166,8 @@ static Image makeCoat(float sc)
 
 const Image &coatTile(float sc)
 {
-    static std::mutex m;
-    static std::map<int, Image> cache;
-    std::lock_guard<std::mutex> lock(m);
+    std::lock_guard<std::mutex> l(resMutex);
+    auto &cache = resources().coat;
     int key = jlimit(4, 24, (int)std::lround(sc * 4.0f));   /* (in quarters of a pixel per unit) */
     auto it = cache.find(key);
     if (it == cache.end())
@@ -784,19 +828,24 @@ void drawLegend(Graphics &g, const String &s, Rectangle<float> r, float size, Co
 
 void drawTag(Graphics &g, Rectangle<float> r)
 {
-    static Image src = ImageCache::getFromMemory(BinaryData::swtdr34mztag_png, BinaryData::swtdr34mztag_pngSize);
-    if (!src.isValid())
-        return;
-    static Image tag = [] {
-        Image t(Image::ARGB, src.getWidth(), src.getHeight(), true);   /* (in the print's colour, its own alpha) */
-        for (int y = 0; y < src.getHeight(); y++)
-            for (int x = 0; x < src.getWidth(); x++) {
-                auto p = src.getPixelAt(x, y);
-                float a = p.getFloatAlpha() * (p.getBrightness() > 0.5f ? 1.0f : p.getBrightness() * 2.0f);
-                t.setPixelAt(x, y, ink().withAlpha(a));
-            }
-        return t;
-    }();
+    Image tag;
+    {
+        std::lock_guard<std::mutex> l(resMutex);
+        auto &t = resources().tag;
+        if (!t.isValid()) {              /* (not through ImageCache: nothing global stays behind) */
+            Image src = ImageFileFormat::loadFrom(BinaryData::swtdr34mztag_png, BinaryData::swtdr34mztag_pngSize);
+            if (!src.isValid())
+                return;
+            t = Image(Image::ARGB, src.getWidth(), src.getHeight(), true);   /* (in the print's colour, its own alpha) */
+            for (int y = 0; y < src.getHeight(); y++)
+                for (int x = 0; x < src.getWidth(); x++) {
+                    auto p = src.getPixelAt(x, y);
+                    float a = p.getFloatAlpha() * (p.getBrightness() > 0.5f ? 1.0f : p.getBrightness() * 2.0f);
+                    t.setPixelAt(x, y, ink().withAlpha(a));
+                }
+        }
+        tag = t;
+    }
     auto ri = r.getSmallestIntegerContainer();
     g.setImageResamplingQuality(Graphics::highResamplingQuality);
     g.drawImageWithin(tag, ri.getX(), ri.getY(), ri.getWidth(), ri.getHeight(), RectanglePlacement::centred | RectanglePlacement::onlyReduceInSize);

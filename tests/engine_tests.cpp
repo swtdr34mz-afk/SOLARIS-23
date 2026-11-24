@@ -28,12 +28,15 @@ static int failures = 0;
         }                                                                                                              \
     } while (0)
 
+/* a program, its drones opened as a player would (HOLD on all six: the programs start with them closed) */
 static void load(Engine &e, int prog)
 {
     std::vector<float> v(NPARAMS);
     presetValues(prog, v.data());
     for (int i = 0; i < NPARAMS; i++)
         e.set(i, v[i]);
+    for (int h : {D1_HOLD, D2_HOLD, D3_HOLD, D4_HOLD, D5_HOLD, D6_HOLD})
+        e.set(h, 1.0f);
 }
 
 struct Stats {
@@ -171,6 +174,16 @@ int main(int argc, char **argv)
     }
     CHECK(NPARAMS == 200, "the parameters' count changed: %d (append only)", NPARAMS);
 
+    /* no program opens a drone by itself */
+    {
+        std::vector<float> v(NPARAMS);
+        for (int p = 0; p < numPresets(); p++) {
+            presetValues(p, v.data());
+            for (int h : {D1_HOLD, D2_HOLD, D3_HOLD, D4_HOLD, D5_HOLD, D6_HOLD, D1_GATE, D2_GATE, D3_GATE, D4_GATE, D5_GATE, D6_GATE})
+                CHECK(v[(size_t)h] < 0.5f, "%s: a drone open (%s)", presetName(p), PARAMS[h].id);
+        }
+    }
+
     /* every program at three rates: it sounds, nothing over 1, nothing not a number */
     for (int p = 0; p < numPresets(); p++)
         for (double rate : {44100.0, 48000.0, 96000.0}) {
@@ -253,8 +266,8 @@ int main(int argc, char **argv)
         std::vector<float> L(44100), R(44100);
         e.render(L.data(), R.data(), 44100 * 1);
         e.panic();
-        e.set(D1_HOLD, 0);
-        e.set(D2_HOLD, 0);
+        for (int h : {D1_HOLD, D2_HOLD, D3_HOLD, D4_HOLD, D5_HOLD, D6_HOLD})
+            e.set(h, 0.0f);
         e.render(L.data(), R.data(), 64);
         e.render(L.data(), R.data(), 4410);
         float pk = 0;

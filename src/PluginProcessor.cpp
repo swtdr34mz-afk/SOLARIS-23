@@ -16,8 +16,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout SolarisProcessor::createLayo
             for (int k = 0; k < d.nChoices; k++)
                 ch.add(d.choices[k]);
             layout.add(std::make_unique<juce::AudioParameterChoice>(pid, d.name, ch, (int)d.def));
-        } else if (d.kind == K_SW) {
-            layout.add(std::make_unique<juce::AudioParameterBool>(pid, d.name, d.def >= 0.5f));
+        } else if (d.kind == K_SW) {   /* (a choice of two: its value always 0 or 1, whatever a host sets) */
+            layout.add(std::make_unique<juce::AudioParameterChoice>(pid, d.name, juce::StringArray{"OFF", "ON"}, d.def >= 0.5f ? 1 : 0));
         } else {
             layout.add(std::make_unique<juce::AudioParameterFloat>(
                 pid, d.name, juce::NormalisableRange<float>(0.0f, 1.0f), d.def,
@@ -215,11 +215,6 @@ void SolarisProcessor::setStateInformation(const void *data, int sizeInBytes)
             uiScale = juce::jlimit(0.5f, 1.5f, (float)state.getProperty("uiScale", 0.8f));
             uiFinish = juce::jlimit(0, 4, (int)state.getProperty("uiFinish", 0));
             apvts.replaceState(state);
-            /* every value told to the host again (a value the state left as it was is not sent by replaceState,
-             * and the host may hold another for it: a switch a host set to 0.86 is 1 in the state, and stays 0.86 otherwise) */
-            for (auto *p : getParameters())
-                if (auto *rp = dynamic_cast<juce::RangedAudioParameter *>(p))
-                    rp->setValueNotifyingHost(rp->convertTo0to1(rp->convertFrom0to1(rp->getValue())));   /* (snapped: a switch 0 or 1) */
         }
 }
 

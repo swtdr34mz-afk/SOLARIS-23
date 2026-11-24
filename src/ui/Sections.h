@@ -17,6 +17,7 @@ struct Meters {
 };
 
 struct Page : juce::Component {
+    ~Page() override { deleteAllChildren(); }   /* (the page owns its controls: none outlives the editor) */
     struct SecRect {
         juce::Rectangle<float> r;
         juce::String title;

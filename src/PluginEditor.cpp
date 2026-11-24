@@ -118,7 +118,13 @@ SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), pr
     startTimerHz(30);
 }
 
-SolarisEditor::~SolarisEditor() { setLookAndFeel(nullptr); }
+SolarisEditor::~SolarisEditor()
+{
+    stopTimer();
+    page.removeChildComponent(header.get());   /* (the header is the editor's own; the page deletes the rest) */
+    page.deleteAllChildren();
+    setLookAndFeel(nullptr);
+}
 
 void SolarisEditor::resized()
 {

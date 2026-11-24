@@ -1,0 +1,12 @@
+{
+  "id": "solaris-23",
+  "name": "SOLARIS-23",
+  "author": "swtdr34mz",
+  "repo": "swtdr34mz-afk/SOLARIS-23",
+  "kind": "instrument",
+  "license": "MPL-2.0",
+  "summary": "A microtonal drone and ambient machine: four drones of five free-running saws (each oscillator tuned freely, a light sensor, VOLT for FM), two chaos drones, two morphing VCOs on the pads, LFOs, a joystick, a 5-step sequencer on the MPC tempo, a dual 12 dB filter, distortion and a dual effector of 24 programs.",
+  "style": "drone",
+  "tags": ["drone", "ambient", "microtonal", "experimental"],
+  "screenshot": "https://raw.githubusercontent.com/swtdr34mz-afk/SOLARIS-23/v0.1.0/mpc/catalog/screenshot.png"
+}

@@ -214,6 +214,33 @@ int main(int argc, char **argv)
         CHECK(std::fabs(after - before) < 1.5, "TUNE turned and back: %.2f dB -> %.2f dB", before, after);
     }
 
+    /* the mod wheel (to FX X) on a reverb: no crackle while it moves (the room's size used to jump with each
+       MIDI step); the sound's roughness with the wheel moving stays near the roughness without */
+    for (int p : {3, 15}) {
+        Engine e;
+        e.prepare(44100.0);
+        load(e, p);
+        e.set(BLEND, 1.0f);
+        std::vector<float> L(64), R(64);
+        float a = 0, b = 0;
+        double still = 0, moving = 0;
+        for (int k = 0; k < 44100 * 8 / 64; k++) {
+            int t = k * 64;
+            bool wh = t > 44100 * 4;
+            if (wh)
+                e.modWheel(std::round((0.5f + 0.5f * std::sin((float)t * 0.00004f)) * 127.0f) / 127.0f);
+            e.render(L.data(), R.data(), 64);
+            for (int i = 0; i < 64; i++) {
+                float d = R[(size_t)i] - 2.0f * a + b;
+                b = a;
+                a = R[(size_t)i];
+                if (t > 44100 * 2)
+                    (wh ? moving : still) += (double)d * d;
+            }
+        }
+        CHECK(moving < still * 2.0 + 0.01, "%s: the mod wheel crackles (%.3f against %.3f)", presetName(p), moving, still);
+    }
+
     /* every program at three rates: it sounds, nothing over 1, nothing not a number */
     for (int p = 0; p < numPresets(); p++)
         for (double rate : {44100.0, 48000.0, 96000.0}) {

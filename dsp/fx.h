@@ -36,7 +36,7 @@ private:
     /* a long delay, a short one (modulation), a pitch shifter's buffer, a grain buffer */
     Delay dl, mod, ps, grain, pre;
     float dlTime = 0.3f, tone1 = 0.0f, tone2 = 0.0f, wobPh = 0.0f, flutPh = 0.0f;
-    float lfo1 = 0.0f;
+    float lfo1 = 0.0f, frzH = 0.0f;
     float psPh[2] = {0.0f, 0.5f}, psPh2[2] = {0.0f, 0.5f};
     float pitchShift(float *ph, float ratio, float win);   /* reads ps (written by the caller) */
     float pitchShift2(float *ph, float ratio, float win);

@@ -87,7 +87,7 @@ struct Impl {
     int held[32] = {};                   /* (a plate's note: + 128) */
     int noteId = 48;
     int nHeld = 0;
-    float note = 48.0f, glideNote = 48.0f, vel = 1.0f, bendV = 0.0f, wheel = 0.0f;
+    float note = 48.0f, glideNote = 48.0f, vel = 1.0f, bendV = 0.0f, wheel = 0.0f, bendSm = 0.0f, wheelSm = 0.0f;
     bool keyGate = false, seqGate = false, gateNow = false;
 
     /* the modulation */
@@ -180,6 +180,9 @@ void Impl::controls()
         else
             sm[i] = p[i];
     }
+    /* the wheels glide too: a MIDI wheel comes in 128 steps, and each step would jump what it moves */
+    wheelSm += sa * (wheel - wheelSm);
+    bendSm += sa * (bendV - bendSm);
     auto ch_ = [&](int i) { return (int)std::lround(sm[i]); };
     auto sw = [&](int i) { return sm[i] >= 0.5f; };
 
@@ -273,7 +276,7 @@ void Impl::controls()
     send(ch_(LA_DEST), lfoOut[0] * map::bip(sm[LA_DEPTH]));
     send(ch_(LB_DEST), lfoOut[1] * map::bip(sm[LB_DEPTH]));
     send(ch_(JOY_XDEST), map::bip(sm[JOY_X]));
-    send(ch_(JOY_YDEST), clampf(map::bip(sm[JOY_Y]) + wheel, -1.0f, 1.0f));
+    send(ch_(JOY_YDEST), clampf(map::bip(sm[JOY_Y]) + wheelSm, -1.0f, 1.0f));
     if (run && !play)
         send(ch_(SEQ_DEST), seqGlide * map::bip(sm[SEQ_DEPTH]));
     const bool grid = ch_(GRID) == 1;
@@ -334,7 +337,7 @@ void Impl::controls()
             target += (grid ? std::round(seqGlide * 24.0f) : seqGlide * 24.0f) * map::bip(sm[SEQ_DEPTH]);
         glideNote = g < 0.001f ? target : glideNote + (1.0f - std::exp(-kb / (g * 0.35f))) * (target - glideNote);
         static const float BENDST[5] = {0.0f, 1.0f, 2.0f, 7.0f, 12.0f};
-        float common = glideNote + bendV * BENDST[ch_(BEND)] + bus[D_VPITCH] * 12.0f;
+        float common = glideNote + bendSm * BENDST[ch_(BEND)] + bus[D_VPITCH] * 12.0f;
         for (int i = 0; i < 2; i++) {
             Vco &v = vco[i];
             const int b = VCO[i];

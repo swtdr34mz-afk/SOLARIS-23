@@ -30,7 +30,7 @@ const float LANG = std::atan2(LY, LX);   /* its direction on the panel */
 const char *finishName(int) { return "RELIC"; }
 void setFinish(int f) { currentFinish = jlimit(0, NFINISH - 1, f); }
 int finish() { return currentFinish.load(); }
-Colour panelColour() { return Colour(0xff1b1b1b); }
+Colour panelColour() { return Colour(0xff0f0f0f); }
 Colour ink() { return BONE; }
 Colour lcdText() { return Colour(0xffffb23e); }
 
@@ -113,7 +113,7 @@ static Image makeCoat(float sc)
             float nx = -dx * k, ny = -dy * k, nl = std::sqrt(nx * nx + ny * ny + 1.0f);
             float shade = (nx * lx + ny * ly + lz) / nl - lz;
             float v = shade + (rnd.nextFloat() - 0.5f) * 0.05f;
-            Colour c = v > 0.0f ? Colour(0xffe4e0d6).withAlpha(jmin(0.16f, v * 0.42f)) : Colours::black.withAlpha(jmin(0.5f, -v * 0.85f));
+            Colour c = v > 0.0f ? Colour(0xffe4e0d6).withAlpha(jmin(0.10f, v * 0.28f)) : Colours::black.withAlpha(jmin(0.55f, -v * 0.9f));
             bd.setPixelColour(x, y, c);
         }
     return im;
@@ -147,7 +147,7 @@ void drawPanel(Graphics &g, Rectangle<float> r)
         g.fillEllipse(x - s, y - s, s * 2.0f, s * 2.0f);
     }
     /* the light falling across the sheet */
-    g.setGradientFill(ColourGradient(Colours::white.withAlpha(0.035f), r.getX(), r.getY(), Colours::black.withAlpha(0.10f), r.getRight(),
+    g.setGradientFill(ColourGradient(Colours::white.withAlpha(0.02f), r.getX(), r.getY(), Colours::black.withAlpha(0.14f), r.getRight(),
                                      r.getBottom(), false));
     g.fillRect(r);
 }

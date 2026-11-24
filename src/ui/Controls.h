@@ -5,6 +5,8 @@
  * program), the touch plates, a lamp (an LED, the light sensor). Touching one reports it, for the readout. */
 #pragma once
 #include "Look.h"
+#include <array>
+#include <cmath>
 
 namespace s23
 {
@@ -122,6 +124,7 @@ public:
     juce::String plateName(int i) const;   /* the note it plays now: "D3 +14 ct" */
     std::function<void()> onSelect;
     int octave = 3;                      /* C3 (48) */
+    bool changed();                      /* (a plate lit or let go, a tuning, the octave: to be drawn again) */
 
 private:
     juce::MidiKeyboardState &ks;
@@ -130,6 +133,8 @@ private:
     bool edit = false;
     int selected = -1, preview = -1;
     int held = -1;
+    juce::int64 drawnSig = -1;
+    juce::int64 signature() const;
     void select(int i);
     float offset(int i) const;           /* semitones */
     int baseNote(int i) const { return octave * 12 + 12 + i; }
@@ -168,18 +173,79 @@ public:
     {
         setInterceptsMouseClicks(false, false);
     }
+    /* has it moved since it was last drawn? (the editor's timer asks; a lamp at rest is not drawn again: on the Mac
+       every small repaint can become one big one) */
+    bool changed()
+    {
+        float v = level();
+        bool c = kind == orbit ? std::fabs(v - shown) > 0.0015f : (int)std::lround(steps(v)) != (int)std::lround(steps(shown));
+        if (c)
+            shown = v;
+        return c;
+    }
     void paint(juce::Graphics &g) override
     {
+        const float sc = juce::jlimit(1.0f, 8.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
+        if (std::fabs(sc - scale) > 0.01f || getWidth() != w || getHeight() != h) {
+            scale = sc;
+            w = getWidth();
+            h = getHeight();
+            for (auto &f : frames)
+                f = {};
+            well = {};
+            sprite[0] = sprite[1] = {};
+        }
         auto r = getLocalBounds().toFloat();
-        if (kind == dome)
-            drawDome(g, r, level());
-        else if (kind == orbit)
-            drawOrbit(g, r, level());
-        else
-            drawLed(g, r.getCentre(), (r.getWidth() < r.getHeight() ? r.getWidth() : r.getHeight()) * 0.28f, level(), col);
+        shown = level();
+        if (kind == orbit) {
+            if (!well.isValid())
+                well = render(r.getWidth(), r.getHeight(), [r](juce::Graphics &ig) { drawOrbitWell(ig, r); });
+            g.drawImage(well, r);
+            float lr = 0.0f;
+            orbitLed(r, 0.0f, &lr);
+            const float box = lr * 7.4f;
+            for (int k = 0; k < 5; k++) {
+                auto &sp = sprite[k == 0 ? 0 : 1];
+                if (!sp.isValid()) {
+                    float lv = k == 0 ? 1.0f : 0.72f;
+                    sp = render(box, box, [box, lr, lv](juce::Graphics &ig) { drawLed(ig, {box * 0.5f, box * 0.5f}, lr, lv, ORBIT_LED); });
+                }
+                auto p = orbitLed(r, shown + 0.2f * (float)k, nullptr);
+                g.drawImage(sp, juce::Rectangle<float>(box, box).withCentre(p));
+            }
+            return;
+        }
+        int q = juce::jlimit(0, STEPS, (int)std::lround(steps(shown)));
+        auto &f = frames[(size_t)q];
+        if (!f.isValid()) {
+            float lv = (float)q / (float)STEPS;
+            f = render(r.getWidth(), r.getHeight(), [this, r, lv](juce::Graphics &ig) {
+                if (kind == dome)
+                    drawDome(ig, r, lv);
+                else
+                    drawLed(ig, r.getCentre(), (r.getWidth() < r.getHeight() ? r.getWidth() : r.getHeight()) * 0.28f, lv, col);
+            });
+        }
+        g.drawImage(f, r);
     }
     Kind kind;
     std::function<float()> level;
     juce::Colour col;
+
+private:
+    static constexpr int STEPS = 40;     /* the brightness in 40 steps, each drawn once */
+    static float steps(float v) { return juce::jlimit(0.0f, 1.0f, v) * (float)STEPS; }
+    juce::Image render(float wd, float ht, std::function<void(juce::Graphics &)> draw) const
+    {
+        juce::Image im(juce::Image::ARGB, juce::jmax(1, (int)std::ceil(wd * scale)), juce::jmax(1, (int)std::ceil(ht * scale)), true);
+        juce::Graphics ig(im);
+        ig.addTransform(juce::AffineTransform::scale((float)im.getWidth() / wd, (float)im.getHeight() / ht));
+        draw(ig);
+        return im;
+    }
+    std::array<juce::Image, STEPS + 1> frames;
+    juce::Image well, sprite[2];
+    float scale = 0.0f, shown = -1.0f;
+    int w = 0, h = 0;
 };
 } // namespace s23

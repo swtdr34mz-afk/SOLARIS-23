@@ -138,11 +138,23 @@ void SolarisEditor::resized()
 
 void SolarisEditor::timerCallback()
 {
-    for (auto *c : lamps)
-        c->repaint();
-    static int tick = 0;
-    if (++tick % 6 == 0)
+    for (auto *c : lamps) {              /* only what has moved */
+        if (auto *l = dynamic_cast<Lamp *>(c)) {
+            if (l->changed())
+                l->repaint();
+        } else if (auto *p = dynamic_cast<Plates *>(c)) {
+            if (p->changed())
+                p->repaint();
+        } else
+            c->repaint();
+    }
+    /* the header: only when its program or the value in hand changes */
+    int pr = proc.getCurrentProgram();
+    String key = String(pr) + proc.getProgramName(pr) + (inHand ? inHand->getName(40) + inHand->getCurrentValueAsText() : String());
+    if (key != headerKey) {
+        headerKey = key;
         header->repaint();
+    }
 }
 
 void SolarisEditor::touched(RangedAudioParameter &p)

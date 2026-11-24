@@ -737,9 +737,7 @@ void drawLed(Graphics &g, Point<float> c, float r, float level, Colour col)
     g.fillEllipse(Rectangle<float>(r * 0.55f, r * 0.4f).withCentre(c + Point<float>(LX, LY) * r * 0.5f));
 }
 
-/* ORBIT: a black glass well in a steel ring, a faint track, five amber LEDs where the drone's oscillators are on
-   their way round (each a fifth of a turn on) */
-void drawOrbit(Graphics &g, Rectangle<float> r, float phase)
+void drawOrbitWell(Graphics &g, Rectangle<float> r)
 {
     const float d = jmin(r.getWidth(), r.getHeight());
     auto c = Rectangle<float>(d, d).withCentre(r.getCentre()).reduced(d * 0.08f);
@@ -760,14 +758,32 @@ void drawOrbit(Graphics &g, Rectangle<float> r, float phase)
     }
     g.setColour(Colour(0xff3a3730));       /* the hub */
     g.fillEllipse(Rectangle<float>(R * 0.16f, R * 0.16f).withCentre(m));
-    for (int k = 0; k < 5; k++) {
-        float a = MathConstants<float>::twoPi * (phase + 0.2f * (float)k);
-        drawLed(g, {m.x + tr * std::sin(a), m.y - tr * std::cos(a)}, R * 0.085f, k == 0 ? 1.0f : 0.72f, Colour(0xffffa630));
-    }
     Path rim;                              /* the glass catching light */
     rim.addCentredArc(m.x, m.y, R * 0.92f, R * 0.92f, 0.0f, LANG + MathConstants<float>::halfPi - 1.2f, LANG + MathConstants<float>::halfPi + 1.2f, true);
     g.setColour(Colours::white.withAlpha(0.16f));
     g.strokePath(rim, PathStrokeType(R * 0.04f, PathStrokeType::curved, PathStrokeType::rounded));
+}
+
+Point<float> orbitLed(Rectangle<float> r, float phase, float *ledR)
+{
+    const float d = jmin(r.getWidth(), r.getHeight());
+    auto c = Rectangle<float>(d, d).withCentre(r.getCentre()).reduced(d * 0.08f);
+    const float R = c.getWidth() * 0.5f, tr = R * 0.66f, a = MathConstants<float>::twoPi * phase;
+    if (ledR)
+        *ledR = R * 0.085f;
+    return {c.getCentreX() + tr * std::sin(a), c.getCentreY() - tr * std::cos(a)};
+}
+
+/* ORBIT: a black glass well in a steel ring, a faint track, five amber LEDs where the drone's oscillators are on
+   their way round (each a fifth of a turn on) */
+void drawOrbit(Graphics &g, Rectangle<float> r, float phase)
+{
+    drawOrbitWell(g, r);
+    for (int k = 0; k < 5; k++) {
+        float lr = 0.0f;
+        auto p = orbitLed(r, phase + 0.2f * (float)k, &lr);
+        drawLed(g, p, lr, k == 0 ? 1.0f : 0.72f, ORBIT_LED);
+    }
 }
 
 /* the light sensor: an old glass dome in a steel ring, milky and yellowed, glowing with what it sees */

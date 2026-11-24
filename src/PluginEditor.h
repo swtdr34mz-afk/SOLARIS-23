@@ -26,6 +26,7 @@ private:
     s23::Look look;
     s23::Page page;
     juce::RangedAudioParameter *inHand = nullptr;
+    juce::String headerKey;
     struct Header;
     std::unique_ptr<juce::Component> header;
     std::vector<juce::Component *> lamps;

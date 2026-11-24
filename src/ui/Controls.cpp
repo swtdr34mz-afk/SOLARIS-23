@@ -14,6 +14,7 @@ static float LYf() { return -0.78f; }
 Knob::Knob(APVTS &s, const String &id, const String &leg, KS st, Touch *t)
     : param(*s.getParameter(id)), legend(leg), style(st), touch(t)
 {
+    setBufferedToImage(true);            /* (drawn again only when it turns: the Mac may repaint everything at once) */
     setSliderStyle(Slider::RotaryVerticalDrag);
     setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
     setMouseDragSensitivity(220);
@@ -85,6 +86,7 @@ void Knob::mouseDown(const MouseEvent &e)
 Switch::Switch(APVTS &s, const String &id, const String &leg, SW st, Touch *t)
     : param(*s.getParameter(id)), legend(leg), style(st), touch(t), att(param, [this](float) { repaint(); }, nullptr)
 {
+    setBufferedToImage(true);
     att.sendInitialUpdate();
 }
 
@@ -407,8 +409,22 @@ int Plates::plateAt(Point<float> p) const
     return -1;
 }
 
+juce::int64 Plates::signature() const
+{
+    juce::int64 sig = (juce::int64)octave * 1000003 + (edit ? 7 : 0) + (juce::int64)(selected + 1) * 131;
+    for (int i = 0; i < 12; i++) {
+        if (ks.isNoteOn(channel, baseNote(i)))
+            sig ^= (juce::int64)1 << (40 + i);
+        sig = sig * 31 + (juce::int64)std::lround(offset(i) * 1000.0f);
+    }
+    return sig;
+}
+
+bool Plates::changed() { return signature() != drawnSig; }
+
 void Plates::paint(Graphics &g)
 {
+    drawnSig = signature();
     for (int i = 0; i < 12; i++) {
         auto p = plate(i);
         bool lit = ks.isNoteOn(channel, baseNote(i));

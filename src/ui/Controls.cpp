@@ -7,6 +7,9 @@ namespace s23
 {
 using namespace juce;
 
+static float LXf() { return -0.63f; }   /* (the light's direction, as Look.cpp's) */
+static float LYf() { return -0.78f; }
+
 /* ----------------------------------------------------------------------------------------- Knob --- */
 Knob::Knob(APVTS &s, const String &id, const String &leg, KS st, Touch *t)
     : param(*s.getParameter(id)), legend(leg), style(st), touch(t)
@@ -137,41 +140,69 @@ XYPad::XYPad(APVTS &s, const String &xid, const String &yid, Touch *t)
     ay.sendInitialUpdate();
 }
 
-/* a black field with the four arrows, the stick's round cap where X and Y are */
+/* a recessed black field with the four arrows; the stick: a rubber boot with its folds, a steel shaft, a knurled black
+ * top, leaning where X and Y are */
 void XYPad::paint(Graphics &g)
 {
     auto r = getLocalBounds().toFloat().reduced(2.0f);
-    g.setColour(Colours::black.withAlpha(0.3f));
-    g.fillRoundedRectangle(r.translated(0.0f, 1.5f), 5.0f);
-    g.setGradientFill(ColourGradient(Colour(0xff2a2a2c), r.getX(), r.getY(), Colour(0xff141415), r.getX(), r.getBottom(), false));
+    g.setColour(Colour(0xff060606));
     g.fillRoundedRectangle(r, 5.0f);
-    const Colour w = Colour(0xffe6e6e6);
-    auto c = r.getCentre();
+    auto f = r.reduced(2.0f);
+    g.setGradientFill(ColourGradient(Colour(0xff0f0f0e), f.getX(), f.getY(), Colour(0xff201f1c), f.getX(), f.getBottom(), false));
+    g.fillRoundedRectangle(f, 4.0f);
+    for (int i = 0; i < 5; i++) {        /* the well's inner shadow */
+        auto e = f.reduced((float)i * 0.8f);
+        g.setColour(Colours::black.withAlpha(0.35f - 0.06f * (float)i));
+        g.drawLine(e.getX() + 3.0f, e.getY(), e.getRight() - 3.0f, e.getY(), 0.8f);
+        g.drawLine(e.getX(), e.getY() + 3.0f, e.getX(), e.getBottom() - 3.0f, 0.8f);
+    }
+    const Colour w = ink();
+    auto c = f.getCentre();
     auto tri = [&](float dx, float dy) {
         Path p;
-        Point<float> t(c.x + dx * (r.getWidth() * 0.5f - 9.0f), c.y + dy * (r.getHeight() * 0.5f - 9.0f));
-        p.addTriangle(t.x + dx * 5.0f, t.y + dy * 5.0f, t.x - dy * 5.0f - dx * 3.0f, t.y - dx * 5.0f - dy * 3.0f,
-                      t.x + dy * 5.0f - dx * 3.0f, t.y + dx * 5.0f - dy * 3.0f);
-        g.setColour(w);
+        Point<float> t(c.x + dx * (f.getWidth() * 0.5f - 9.0f), c.y + dy * (f.getHeight() * 0.5f - 9.0f));
+        p.addTriangle(t.x + dx * 5.0f, t.y + dy * 5.0f, t.x - dy * 5.0f - dx * 3.0f, t.y - dx * 5.0f - dy * 3.0f, t.x + dy * 5.0f - dx * 3.0f,
+                      t.y + dx * 5.0f - dy * 3.0f);
+        g.setColour(w.withAlpha(0.85f));
         g.fillPath(p);
     };
     tri(0, -1);
     tri(0, 1);
     tri(-1, 0);
     tri(1, 0);
-    g.setColour(w.withAlpha(0.14f));
-    g.drawLine(r.getX() + 16.0f, c.y, r.getRight() - 16.0f, c.y, 1.0f);
-    g.drawLine(c.x, r.getY() + 16.0f, c.x, r.getBottom() - 16.0f, 1.0f);
-    auto area = r.reduced(18.0f);
+    auto area = f.reduced(20.0f);
     Point<float> p(area.getX() + px.getValue() * area.getWidth(), area.getBottom() - py.getValue() * area.getHeight());
+    /* the boot: concentric folds, darker in their valleys, around the centre */
+    const float B = jmin(f.getWidth(), f.getHeight()) * 0.30f;
+    for (int i = 6; i >= 0; i--) {
+        float rr = B * (0.35f + 0.1f * (float)i);
+        auto bc = c + (p - c) * (0.06f * (float)(6 - i));
+        ColourGradient fold(Colour(0xff3a3935), bc.x + LXf() * rr * 0.4f, bc.y + LYf() * rr * 0.4f, Colour(0xff0b0b0a), bc.x + rr, bc.y, true);
+        g.setGradientFill(fold);
+        g.fillEllipse(Rectangle<float>(rr * 2.0f, rr * 2.0f).withCentre(bc));
+    }
+    /* the shaft and the top */
     g.setColour(Colours::black.withAlpha(0.5f));
-    g.fillEllipse(Rectangle<float>(34.0f, 34.0f).withCentre(p.translated(1.0f, 3.0f)));
-    g.setGradientFill(ColourGradient(Colour(0xff5c5c60), p.x - 8.0f, p.y - 10.0f, Colour(0xff0e0e0f), p.x + 10.0f, p.y + 12.0f, true));
-    g.fillEllipse(Rectangle<float>(32.0f, 32.0f).withCentre(p));
-    g.setColour(Colour(0xff3a3a3d));
-    g.fillEllipse(Rectangle<float>(16.0f, 16.0f).withCentre(p));
-    g.setColour(Colours::white.withAlpha(0.1f));
-    g.drawEllipse(Rectangle<float>(32.0f, 32.0f).withCentre(p), 1.0f);
+    g.drawLine(Line<float>(c, p).withShortenedStart(0.0f), 7.0f);
+    ColourGradient sh(Colour(0xff4a4740), c.x - 3.0f, c.y, Colour(0xffd8d3c6), c.x + 1.0f, c.y, false);
+    g.setGradientFill(sh);
+    g.drawLine(Line<float>(c, p), 4.0f);
+    g.setColour(Colours::black.withAlpha(0.55f));
+    g.fillEllipse(Rectangle<float>(34.0f, 34.0f).withCentre(p.translated(2.0f, 4.0f)));
+    const float kr = 15.0f;
+    for (int i = 0; i < 36; i++) {       /* its knurled edge */
+        float a0 = MathConstants<float>::twoPi * (float)i / 36.0f, a1 = a0 + MathConstants<float>::twoPi / 36.0f;
+        Path w2;
+        w2.addPieSegment(p.x - kr, p.y - kr, kr * 2.0f, kr * 2.0f, a0, a1 + 0.01f, 0.8f);
+        float l = 0.5f + 0.5f * std::cos(a0 - MathConstants<float>::halfPi - std::atan2(LYf(), LXf()));
+        g.setColour(Colour(0xff222220).withMultipliedBrightness(0.6f + 1.6f * l * l));
+        g.fillPath(w2);
+    }
+    ColourGradient top(Colour(0xff4a4945), p.x + LXf() * 6.0f, p.y + LYf() * 6.0f, Colour(0xff0c0c0b), p.x + kr, p.y, true);
+    g.setGradientFill(top);
+    g.fillEllipse(Rectangle<float>(kr * 1.6f, kr * 1.6f).withCentre(p));
+    g.setColour(Colours::white.withAlpha(0.18f));
+    g.fillEllipse(Rectangle<float>(5.0f, 3.5f).withCentre(p + Point<float>(LXf(), LYf()) * 6.0f));
 }
 
 void XYPad::moveTo(Point<float> m)
@@ -214,22 +245,51 @@ void Cartridge::paint(Graphics &g)
 {
     auto r = getLocalBounds().toFloat();
     int f = fx(), cart = f / 3, prog = f % 3;
-    /* the slot with the cartridge in it (a green board, its label), the LCD, the 1-2-3 switch */
+    /* the slot (a dark well, its walls in shadow), the cartridge in it: a green board with gold fingers and traces,
+     * a paper label, a little dog-eared */
     auto slot = r.removeFromTop(30.0f);
-    g.setColour(Colour(0xff0d0d0e));
+    g.setColour(Colour(0xff050505));
     g.fillRoundedRectangle(slot, 3.0f);
-    auto card = slot.reduced(5.0f, 7.0f);
-    g.setGradientFill(ColourGradient(Colour(0xff2f5a3a), card.getX(), card.getY(), Colour(0xff1d3a25), card.getX(), card.getBottom(), false));
-    g.fillRect(card);
-    for (int i = 0; i < 6; i++) {        /* its contacts */
-        g.setColour(Colour(0xffc9a24a));
-        g.fillRect(card.getX() + 3.0f + (float)i * 3.0f, card.getY() + 2.0f, 1.6f, card.getHeight() - 4.0f);
+    for (int i = 0; i < 4; i++) {
+        g.setColour(Colours::black.withAlpha(0.5f - 0.1f * (float)i));
+        g.drawLine(slot.getX() + 2.0f, slot.getY() + (float)i * 0.7f + 0.5f, slot.getRight() - 2.0f, slot.getY() + (float)i * 0.7f + 0.5f, 0.7f);
     }
-    auto label = card.reduced(card.getWidth() * 0.2f, 2.0f);
-    g.setColour(Colour(0xffefe7d3));
+    g.setColour(Colour(0xffd8d2c4).withAlpha(0.15f));
+    g.drawLine(slot.getX() + 3.0f, slot.getBottom() - 0.5f, slot.getRight() - 3.0f, slot.getBottom() - 0.5f, 0.8f);
+    auto card = slot.reduced(5.0f, 6.0f);
+    g.setColour(Colours::black.withAlpha(0.6f));
+    g.fillRect(card.translated(0.8f, 1.2f));
+    ColourGradient pcb(Colour(0xff2f6a40), card.getX(), card.getY(), Colour(0xff163a22), card.getX(), card.getBottom(), false);
+    pcb.addColour(0.15, Colour(0xff3d7c4e));
+    g.setGradientFill(pcb);
+    g.fillRect(card);
+    Random rnd(cart * 31 + 7);
+    for (int i = 0; i < 8; i++) {        /* traces */
+        float y = card.getY() + 2.0f + rnd.nextFloat() * (card.getHeight() - 4.0f);
+        float x0 = card.getX() + card.getWidth() * (0.2f + 0.6f * rnd.nextFloat());
+        g.setColour(Colour(0xff5fa06c).withAlpha(0.5f));
+        g.drawLine(x0, y, jmin(card.getRight() - 2.0f, x0 + 6.0f + rnd.nextFloat() * 20.0f), y, 0.5f);
+    }
+    for (int i = 0; i < 7; i++) {        /* the gold fingers */
+        auto f = Rectangle<float>(card.getX() + 2.5f + (float)i * 2.8f, card.getY() + 2.0f, 1.7f, card.getHeight() - 4.0f);
+        ColourGradient au(Colour(0xfff2d27a), f.getX(), f.getY(), Colour(0xff8a6420), f.getRight(), f.getY(), false);
+        g.setGradientFill(au);
+        g.fillRect(f);
+    }
+    auto label = card.reduced(card.getWidth() * 0.2f, 2.0f).withTrimmedLeft(4.0f);
+    g.setColour(Colours::black.withAlpha(0.4f));
+    g.fillRect(label.translated(0.5f, 0.7f));
+    ColourGradient paper(Colour(0xfff1e8d0), label.getX(), label.getY(), Colour(0xffcfc2a0), label.getRight(), label.getBottom(), false);
+    g.setGradientFill(paper);
     g.fillRect(label);
+    g.setColour(Colour(0xff8a7a58).withAlpha(0.35f));   /* a stain */
+    g.fillEllipse(label.getRight() - label.getHeight() * 1.4f, label.getY() + 1.0f, label.getHeight() * 1.1f, label.getHeight() * 0.8f);
+    Path ear;                            /* the dog-ear */
+    ear.addTriangle(label.getRight() - 4.0f, label.getY(), label.getRight(), label.getY(), label.getRight(), label.getY() + 4.0f);
+    g.setColour(Colour(0xff163a22));
+    g.fillPath(ear);
     g.setColour(Colour(0xff1a1a1a));
-    g.setFont(font(Face::title, 9.5f));
+    g.setFont(font(Face::title, 9.5f).withExtraKerningFactor(0.08f));
     g.drawText(sol::cartName(cart), label, Justification::centred, false);
     r.removeFromTop(4.0f);
     auto row = r.removeFromTop(26.0f);
@@ -325,6 +385,12 @@ void Plates::paint(Graphics &g)
         g.setGradientFill(ColourGradient(lit ? Colour(0xffe8c278) : Colour(0xffa98a4c), p.getX(), p.getY(),
                                          lit ? Colour(0xffa8803a) : Colour(0xff5e4a24), p.getRight(), p.getBottom(), false));
         g.fillRect(p);
+        g.setColour(Colour(0xfff0d89a).withAlpha(0.45f));   /* its edges: lit above and left, dark below and right */
+        g.drawLine(p.getX(), p.getY() + 0.4f, p.getRight(), p.getY() + 0.4f, 0.8f);
+        g.drawLine(p.getX() + 0.4f, p.getY(), p.getX() + 0.4f, p.getBottom(), 0.8f);
+        g.setColour(Colour(0xff1c150a).withAlpha(0.8f));
+        g.drawLine(p.getX(), p.getBottom() - 0.4f, p.getRight(), p.getBottom() - 0.4f, 0.8f);
+        g.drawLine(p.getRight() - 0.4f, p.getY(), p.getRight() - 0.4f, p.getBottom(), 0.8f);
         g.setGradientFill(ColourGradient(Colours::white.withAlpha(0.16f), p.getCentreX(), p.getCentreY(), Colours::transparentWhite,
                                          p.getCentreX() + p.getWidth(), p.getCentreY(), true));
         g.fillRect(p);

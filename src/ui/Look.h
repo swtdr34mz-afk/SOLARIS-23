@@ -38,12 +38,14 @@ public:
 };
 
 void drawPanel(juce::Graphics &, juce::Rectangle<float> r);
-void drawWear(juce::Graphics &, juce::Rectangle<float> r);   /* over the print: scratches, scuffs, chips, grime */
+void drawWear(juce::Graphics &, juce::Rectangle<float> r, float px);   /* over the print (px: a screen pixel in panel units) */
+void drawPanelEdge(juce::Graphics &, juce::Rectangle<float> r);
+const juce::Image &coatTile(float pixelsPerUnit);   /* the coat's relief, made for this density (tiles seamlessly) */
 void drawScrew(juce::Graphics &, juce::Point<float> c, float r);
 void drawSection(juce::Graphics &, juce::Rectangle<float> r, const juce::String &title, Sec s);
 void drawKnob(juce::Graphics &, juce::Rectangle<float> r, float pos, KS style, bool bipolar, bool ticks);
 void drawToggle(juce::Graphics &, juce::Rectangle<float> r, bool up);
-void drawButton(juce::Graphics &, juce::Rectangle<float> r, bool on, bool down, bool grey);
+void drawButton(juce::Graphics &, juce::Rectangle<float> r, bool on, bool down, bool lens);
 void drawDroneKey(juce::Graphics &, juce::Rectangle<float> r, bool on, bool down);
 void drawLed(juce::Graphics &, juce::Point<float> c, float r, float level, juce::Colour col);
 void drawDome(juce::Graphics &, juce::Rectangle<float> r, float level);

@@ -11,21 +11,30 @@ static String U(const char *s) { return String::fromUTF8(s); }
 
 void Page::paint(Graphics &g)
 {
-    /* the background (the panel, the frames, the print, the wear) drawn once, at the window's size */
-    float sc = jlimit(1.0f, 2.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
-    if (!cache.isValid() || std::fabs(sc - cacheScale) > 0.05f) {
+    /* the background (the panel, its coat, the frames, the print, the wear) drawn once at the screen's own pixel
+     * density (up to an 8K screen filled), then only copied */
+    const float sc = jlimit(1.0f, 6.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
+    if (!cache.isValid() || std::fabs(sc - cacheScale) > 0.02f) {
         cacheScale = sc;
         cache = Image(Image::RGB, (int)std::ceil((float)getWidth() * sc), (int)std::ceil((float)getHeight() * sc), false);
         Graphics cg(cache);
+        {
+            Graphics::ScopedSaveState s(cg);
+            cg.addTransform(AffineTransform::scale(sc));
+            drawPanel(cg, getLocalBounds().toFloat());
+        }
+        cg.setTiledImageFill(coatTile(sc), 0, 0, 1.0f);   /* (in screen pixels: the relief at full resolution) */
+        cg.fillAll();
         cg.addTransform(AffineTransform::scale(sc));
-        paintBackground(cg);
+        paintBackground(cg, 1.0f / sc);
     }
+    Graphics::ScopedSaveState s(g);
+    g.setImageResamplingQuality(Graphics::highResamplingQuality);
     g.drawImage(cache, getLocalBounds().toFloat());
 }
 
-void Page::paintBackground(Graphics &g)
+void Page::paintBackground(Graphics &g, float px)
 {
-    drawPanel(g, getLocalBounds().toFloat());
     for (auto &s : sections)
         drawSection(g, s.r, s.title, s.sec);
     g.setColour(ink().withAlpha(0.6f));
@@ -49,7 +58,8 @@ void Page::paintBackground(Graphics &g)
     }
     if (extra)
         extra(g);
-    drawWear(g, getLocalBounds().toFloat());
+    drawWear(g, getLocalBounds().toFloat(), px);
+    drawPanelEdge(g, getLocalBounds().toFloat());
     for (auto &p : screws)
         drawScrew(g, p, 5.5f);
 }

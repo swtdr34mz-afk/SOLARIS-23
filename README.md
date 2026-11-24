@@ -49,7 +49,7 @@ makers, and no part of their designs, names or panels.
 
 [Actions](https://github.com/swtdr34mz-afk/SOLARIS-23/actions) → the newest green run → **Artifacts** at the bottom:
 `SOLARIS23-Windows` (VST3 + app; a GitHub sign-in is needed for artifacts). A release (a tag
-`v0.1.0` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
+`v1.1` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
 
 ## Installieren (kurz auf Deutsch)
 

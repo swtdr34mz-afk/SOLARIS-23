@@ -47,6 +47,7 @@ public:
     juce::RangedAudioParameter &param;
     juce::String legend;
     SW style;
+    bool momentary = false;              /* on while pressed (the drone keys), else a press switches it */
     bool on() const { return param.getValue() >= 0.5f; }
 
 private:

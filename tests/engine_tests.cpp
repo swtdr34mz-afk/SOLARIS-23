@@ -169,7 +169,7 @@ int main(int argc, char **argv)
             CHECK(t[0] != 0, "%s: no text", PARAMS[i].id);
         }
     }
-    CHECK(NPARAMS == 194, "the parameters' count changed: %d (append only)", NPARAMS);
+    CHECK(NPARAMS == 200, "the parameters' count changed: %d (append only)", NPARAMS);
 
     /* every program at three rates: it sounds, nothing over 1, nothing not a number */
     for (int p = 0; p < numPresets(); p++)
@@ -253,8 +253,8 @@ int main(int argc, char **argv)
         std::vector<float> L(44100), R(44100);
         e.render(L.data(), R.data(), 44100 * 1);
         e.panic();
-        e.set(D1_GATE, 0);
-        e.set(D2_GATE, 0);
+        e.set(D1_HOLD, 0);
+        e.set(D2_HOLD, 0);
         e.render(L.data(), R.data(), 64);
         e.render(L.data(), R.data(), 4410);
         float pk = 0;

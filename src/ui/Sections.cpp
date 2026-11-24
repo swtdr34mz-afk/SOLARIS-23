@@ -117,8 +117,9 @@ void Builder::classic(int d, R r)
     auto vf = meters.voice;
     static const int MIXI[7] = {0, 0, 1, 0, 5, 6, 0};
     int mi = MIXI[d];
-    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 66, y + 250, 18, 18});
-    text({x + 16, y + 252, 50, 14}, "level", 9.5f);
+    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 52, y + 250, 18, 18});
+    text({x + 8, y + 252, 44, 14}, "level", 9.5f);
+    sw(pid("d%d_hold", d).toRawUTF8(), "HOLD", SW::toggle, {x + 92, y + 238, 40, 50});
     auto lf = meters.light;
     add(new Lamp(Lamp::dome, [lf, d] { return jlimit(0.0f, 1.0f, lf() * (0.92f + 0.03f * (float)d)); }), {x + 160, y + 156, 122, 122});
 }
@@ -145,8 +146,9 @@ void Builder::chaos(int d, R r)
     knob(id("rls").toRawUTF8(), "RLS", KS::slate, {x + 80, y + 206, 62, 76}, 50.0f, true);
     auto vf = meters.voice;
     int mi = d == 3 ? 2 : 7;
-    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 180, y + 228, 20, 20});
-    text({x + 158, y + 250, 64, 14}, "level", 9.5f);
+    add(new Lamp(Lamp::led, [vf, mi] { return vf(mi) * 1.6f; }, AMBER_LED), {x + 170, y + 228, 20, 20});
+    text({x + 148, y + 250, 64, 14}, "level", 9.5f);
+    sw(id("hold").toRawUTF8(), "HOLD", SW::toggle, {x + 236, y + 214, 44, 60});
 }
 
 /* VCO A, B: WAVEFORM (sine .. pulse), OCTAVE, TUNE, PW, SUB; the envelope and VCA (HOLD, LOOP: self-generating);
@@ -298,7 +300,7 @@ void Builder::droneKeys(R r)
     for (int i = 0; i < 6; i++) {
         int d = i + 1;
         int cx = x + 14 + (i % 3) * 80, cy = y + 24 + (i / 3) * 56;
-        sw(pid("d%d_gate", d).toRawUTF8(), String(d), SW::key, {cx, cy, 72, 56});
+        sw(pid("d%d_gate", d).toRawUTF8(), String(d), SW::key, {cx, cy, 72, 56})->momentary = true;   /* (HOLD keeps it open) */
     }
 }
 

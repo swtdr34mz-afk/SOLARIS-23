@@ -10,9 +10,9 @@ Eight voices into a stereo mixer, a dual 12 dB filter, a stereo distortion and a
 - **DRONE 1, 2, 4, 5 (CLASSIC):** five free-running saw oscillators each (1–2 low, 3 middle, 4–5 high), each with
   its own TUNE (no semitone grid: tune chords, clusters, beatings), on/off and MOD (the light sensor bends its pitch).
   VOLT transposes all five down; past the middle they frequency-modulate each other. ATTACK and RELEASE, opened by
-  the drone KEY.
+  the drone KEY while it is held, or by HOLD (latched).
 - **DRONE 3, 6 (CHAOS):** a square modulator (RATE, x1/x10) and a Schmitt-trigger tone (PITCH, LOW/HIGH), FM and/or
-  AM, a DIVIDER, NOISE into the tone, a S&H of the noise: sirens, birds, surf, wind.
+  AM, a DIVIDER, NOISE into the tone, a S&H of the noise: sirens, birds, surf, wind. KEY and HOLD as above.
 - **VCO A, B:** morphing waveform (sine – triangle – saw – ramp – square – pulse), PW, TUNE (an octave), OCTAVE, SUB,
   an ADSR each (HOLD: always open; SELF-GEN: the envelope loops like an LFO), A synced to B, B's FM from A. Played by
   the touch plates and MIDI notes (both VCOs the same note), GLIDE, BEND.
@@ -62,7 +62,7 @@ Trotzdem ausführen*.
 
 ## In the plugin
 
-- **Every parameter** (194) is a host parameter: automatable, saved with the project. The order and the ids are
+- **Every parameter** (200) is a host parameter: automatable, saved with the project. The order and the ids are
   permanent (`dsp/params_list.inc`, made by `tools/gen_params.py`; new ones only at the end).
 - **MIDI in:** notes (the VCOs), velocity, pitch bend (BEND), CC 1 (more of the joystick's Y destination),
   CC 120/123. The touch plates on the panel play the same; their arrows choose the octave.

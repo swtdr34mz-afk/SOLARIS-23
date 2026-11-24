@@ -129,6 +129,10 @@ P("BLEND", "blend", "EFFECT BLEND", "Blend", default=0.4)
 P("GRID", "grid", "TUNE GRID", "Tune Grid", "K_CH", "CH_GRID", default=0)
 P("BEND", "bend", "BEND RANGE", "Bend Range", "K_CH", "CH_BEND", default=2)
 
+# (appended later: the drones' HOLD, the voice open without its key)
+for d in (1, 2, 4, 5, 3, 6):
+    P("D%d_HOLD" % d, "d%d_hold" % d, "DRONE %d HOLD" % d, "D%d Hold" % d, "K_SW", default=0)
+
 ids = [r[1] for r in rows]
 assert len(ids) == len(set(ids))
 out = os.path.join(ROOT, "dsp", "params_list.inc")

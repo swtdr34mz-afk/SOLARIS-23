@@ -16,6 +16,8 @@ namespace
 constexpr int BLOCK = 16;
 const int CLASSIC[4] = {D1_T1, D2_T1, D4_T1, D5_T1};   /* (each: T1..T5, ON1..ON5, MOD1..MOD5, VOLT, ATT, RLS, GATE) */
 const int CHAOS[2] = {D3_PITCH, D6_PITCH};             /* (PITCH, HI, RATE, X10, MODA, DIV, NOISE, SH, FM, AM, ATT, RLS, GATE) */
+const int CLASSIC_HOLD[4] = {D1_HOLD, D2_HOLD, D4_HOLD, D5_HOLD};   /* (HOLD: open without the key) */
+const int CHAOS_HOLD[2] = {D3_HOLD, D6_HOLD};
 const int VCO[2] = {VA_WAVE, VB_WAVE};                 /* (WAVE, PW, TUNE, OCT, SUB, A, D, S, R, HOLD, LOOP) */
 /* the mixer's channels: DRONE 1, 2, 3, VCO A, VCO B, DRONE 4, 5, 6 */
 enum { M_D1, M_D2, M_D3, M_VA, M_VB, M_D4, M_D5, M_D6 };
@@ -395,7 +397,7 @@ void Impl::block()
         /* DRONE 1, 2, 4, 5 */
         for (int c = 0; c < 4; c++) {
             Classic &v = cl[c];
-            if (v.env.v <= 0.0f && sm[CLASSIC[c] + 18] < 0.5f) {   /* (closed and silent: nothing to run) */
+            if (v.env.v <= 0.0f && !(sm[CLASSIC[c] + 18] >= 0.5f || sm[CLASSIC_HOLD[c]] >= 0.5f)) {   /* (closed and silent: nothing to run) */
                 vs[CLASSIC_MIX[c]] = 0.0f;
                 level[CLASSIC_MIX[c]] = 0.0f;
                 continue;
@@ -420,14 +422,14 @@ void Impl::block()
                 sum += s * v.gain[k];
             }
             v.lp += dlp * (sum * 0.13f - v.lp);
-            float e = v.env.run(sm[CLASSIC[c] + 18] >= 0.5f, v.envA, v.envR);
+            float e = v.env.run((sm[CLASSIC[c] + 18] >= 0.5f || sm[CLASSIC_HOLD[c]] >= 0.5f), v.envA, v.envR);
             vs[CLASSIC_MIX[c]] = v.lp * e;
             level[CLASSIC_MIX[c]] = e;
         }
         /* DRONE 3, 6 */
         for (int c = 0; c < 2; c++) {
             Chaos &v = ch[c];
-            if (v.env.v <= 0.0f && sm[CHAOS[c] + 12] < 0.5f) {
+            if (v.env.v <= 0.0f && !(sm[CHAOS[c] + 12] >= 0.5f || sm[CHAOS_HOLD[c]] >= 0.5f)) {
                 vs[CHAOS_MIX[c]] = 0.0f;
                 level[CHAOS_MIX[c]] = 0.0f;
                 continue;
@@ -459,7 +461,7 @@ void Impl::block()
             v.am += 0.08f * ((v.amOn ? sq : 1.0f) - v.am);
             out = out * v.am + n * v.noise * v.noise * 0.6f;
             v.lp += 0.5f * (out - v.lp);
-            float e = v.env.run(sm[CHAOS[c] + 12] >= 0.5f, v.envA, v.envR);
+            float e = v.env.run((sm[CHAOS[c] + 12] >= 0.5f || sm[CHAOS_HOLD[c]] >= 0.5f), v.envA, v.envR);
             vs[CHAOS_MIX[c]] = v.lp * 0.3f * e;
             level[CHAOS_MIX[c]] = e;
         }

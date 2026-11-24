@@ -112,8 +112,9 @@ void Switch::mouseDown(const MouseEvent &)
 {
     down = true;
     att.beginGesture();
-    att.setValueAsPartOfGesture(on() ? 0.0f : 1.0f);
-    att.endGesture();
+    att.setValueAsPartOfGesture(momentary ? 1.0f : on() ? 0.0f : 1.0f);
+    if (!momentary)
+        att.endGesture();
     if (touch)
         touch->touched(param);
     repaint();
@@ -121,6 +122,10 @@ void Switch::mouseDown(const MouseEvent &)
 
 void Switch::mouseUp(const MouseEvent &)
 {
+    if (momentary && down) {             /* (the key let go: the voice closes, unless HOLD keeps it) */
+        att.setValueAsPartOfGesture(0.0f);
+        att.endGesture();
+    }
     down = false;
     repaint();
 }

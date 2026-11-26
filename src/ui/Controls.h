@@ -24,6 +24,9 @@ public:
     void paint(juce::Graphics &) override;
     void mouseEnter(const juce::MouseEvent &) override;
     void mouseDown(const juce::MouseEvent &) override;
+    void mouseDrag(const juce::MouseEvent &) override;
+    void mouseUp(const juce::MouseEvent &) override;
+    void mouseDoubleClick(const juce::MouseEvent &) override;
     juce::RangedAudioParameter &param;
     juce::String legend;
     KS style;
@@ -73,6 +76,7 @@ private:
     void moveTo(juce::Point<float>);
     Touch *touch;
     juce::ParameterAttachment ax, ay;
+    bool dragging = false;
 };
 
 /* a cartridge slot: the program of one side (the cartridge in the slot, its program in the LCD); click for the list,

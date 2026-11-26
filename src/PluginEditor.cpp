@@ -47,6 +47,8 @@ struct SolarisEditor::Header : Component {
     }
     void mouseDown(const MouseEvent &e) override
     {
+        if (e.mods.isPopupMenu())        /* (a right click changes nothing) */
+            return;
         int n = ed.proc.getNumPrograms(), p = ed.proc.getCurrentProgram();
         if (prog().contains(e.position))
             ed.programMenu();

@@ -7,6 +7,26 @@ namespace s23
 {
 using namespace juce;
 
+/* a right click: the host's menu for this parameter (MIDI learn, automation ...), never a change of its value.
+   True when the click was a right click (shown or not: either way it does nothing else) */
+bool hostMenu(Component &c, const MouseEvent &e, RangedAudioParameter *param)
+{
+    if (!e.mods.isPopupMenu())
+        return false;
+    if (param != nullptr)
+        if (auto *ed = c.findParentComponentOfClass<AudioProcessorEditor>())
+            if (auto *ctx = ed->getHostContext())
+                if (auto menu = ctx->getContextMenuForParameter(param))
+                    menu->showNativeMenu(ed->getMouseXYRelative());
+    return true;
+}
+
+static bool inHost(Component &c)
+{
+    auto *ed = c.findParentComponentOfClass<AudioProcessorEditor>();
+    return ed != nullptr && ed->getHostContext() != nullptr;
+}
+
 static float LXf() { return -0.63f; }   /* (the light's direction, as Look.cpp's) */
 static float LYf() { return -0.78f; }
 
@@ -66,7 +86,7 @@ void Knob::mouseEnter(const MouseEvent &e)
 void Knob::mouseDown(const MouseEvent &e)
 {
     auto *ch = dynamic_cast<AudioParameterChoice *>(&param);
-    if (ch && e.mods.isPopupMenu()) {    /* a choice: its list on a right click */
+    if (ch && e.mods.isPopupMenu() && !inHost(*this)) {   /* a choice, the standalone app: its list on a right click */
         PopupMenu m;
         for (int i = 0; i < ch->choices.size(); i++)
             m.addItem(i + 1, ch->choices[i], true, i == ch->getIndex());
@@ -79,7 +99,30 @@ void Knob::mouseDown(const MouseEvent &e)
         });
         return;
     }
+    if (hostMenu(*this, e, &param))      /* (in a host: its menu) */
+        return;
     Slider::mouseDown(e);
+}
+
+void Knob::mouseDrag(const MouseEvent &e)
+{
+    if (e.mods.isPopupMenu())            /* (a right drag turns nothing) */
+        return;
+    Slider::mouseDrag(e);
+}
+
+void Knob::mouseUp(const MouseEvent &e)
+{
+    if (e.mods.isPopupMenu())
+        return;
+    Slider::mouseUp(e);
+}
+
+void Knob::mouseDoubleClick(const MouseEvent &e)
+{
+    if (e.mods.isPopupMenu())
+        return;
+    Slider::mouseDoubleClick(e);
 }
 
 /* --------------------------------------------------------------------------------------- Switch --- */
@@ -110,8 +153,10 @@ void Switch::paint(Graphics &g)
         drawLegend(g, legend, lg, 10.0f);
 }
 
-void Switch::mouseDown(const MouseEvent &)
+void Switch::mouseDown(const MouseEvent &e)
 {
+    if (hostMenu(*this, e, &param))
+        return;
     down = true;
     att.beginGesture();
     att.setValueAsPartOfGesture(momentary ? 1.0f : on() ? 0.0f : 1.0f);
@@ -223,18 +268,31 @@ void XYPad::moveTo(Point<float> m)
 
 void XYPad::mouseDown(const MouseEvent &e)
 {
+    /* a right click: the host's menu for X in the left half of the field, for Y in the right half */
+    if (hostMenu(*this, e, e.position.x < (float)getWidth() * 0.5f ? &px : &py))
+        return;
+    dragging = true;
     ax.beginGesture();
     ay.beginGesture();
     moveTo(e.position);
 }
-void XYPad::mouseDrag(const MouseEvent &e) { moveTo(e.position); }
+void XYPad::mouseDrag(const MouseEvent &e)
+{
+    if (dragging)
+        moveTo(e.position);
+}
 void XYPad::mouseUp(const MouseEvent &)
 {
+    if (!dragging)
+        return;
+    dragging = false;
     ax.endGesture();
     ay.endGesture();
 }
-void XYPad::mouseDoubleClick(const MouseEvent &)   /* back to the middle */
+void XYPad::mouseDoubleClick(const MouseEvent &e)   /* back to the middle */
 {
+    if (e.mods.isPopupMenu())
+        return;
     ax.setValueAsCompleteGesture(0.5f);
     ay.setValueAsCompleteGesture(0.5f);
 }
@@ -311,6 +369,8 @@ void Cartridge::paint(Graphics &g)
 
 void Cartridge::mouseDown(const MouseEvent &e)
 {
+    if (hostMenu(*this, e, &param))
+        return;
     if (touch)
         touch->touched(param);
     auto set = [this](int f) { att.setValueAsCompleteGesture((float)jlimit(0, sol::NFX - 1, f)); };
@@ -503,6 +563,11 @@ void Plates::setEdit(bool on)
 
 void Plates::mouseDown(const MouseEvent &e)
 {
+    if (e.mods.isPopupMenu()) {          /* a right click: the host's menu for that plate's tuning, no note */
+        int i = plateAt(e.position);
+        hostMenu(*this, e, i >= 0 ? apvts.getParameter("plate_" + String(i + 1)) : nullptr);
+        return;
+    }
     for (int d : {-1, 1})
         if (arrow(d).expanded(6.0f).contains(e.position)) {
             bool was = edit && selected >= 0;
@@ -529,6 +594,8 @@ void Plates::mouseDown(const MouseEvent &e)
 
 void Plates::mouseDrag(const MouseEvent &e)
 {
+    if (e.mods.isPopupMenu())
+        return;
     if (edit)
         return;
     int i = plateAt(e.position);
@@ -543,8 +610,10 @@ void Plates::mouseDrag(const MouseEvent &e)
     }
 }
 
-void Plates::mouseUp(const MouseEvent &)
+void Plates::mouseUp(const MouseEvent &e)
 {
+    if (e.mods.isPopupMenu())
+        return;
     if (held >= 0)
         ks.noteOff(channel, held, 0.0f);
     held = -1;
@@ -626,6 +695,8 @@ void PlateEditor::paint(Graphics &g)
 
 void PlateEditor::mouseDown(const MouseEvent &e)
 {
+    if (hostMenu(*this, e, param()))     /* (the NOTE of the selected plate) */
+        return;
     if (editBox().expanded(4.0f).contains(e.position))
         plates.setEdit(!plates.editing());
     repaint();

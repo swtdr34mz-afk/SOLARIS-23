@@ -47,9 +47,9 @@ makers, and no part of their designs, names or panels.
 
 ## Download
 
-[Actions](https://github.com/swtdr34mz-afk/SOLARIS-23/actions) → the newest green run → **Artifacts** at the bottom:
+[Actions](https://github.com/swtdr34mz-afk/SOLARIUM-23A/actions) → the newest green run → **Artifacts** at the bottom:
 `SOLARIUM-23A-Windows` (VST3 + app) and `SOLARIUM-23A-macOS` (VST3, AU + app); a GitHub sign-in is needed for artifacts.
-A release (a tag `v1.2` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
+A release (a tag `v1.3` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIUM-23A/releases).
 
 ## Installieren (kurz auf Deutsch)
 

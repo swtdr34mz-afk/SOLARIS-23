@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -48,7 +48,14 @@ SolarisProcessor::SolarisProcessor()
 /* ----------------------------------------------------------------------------------- programs --- */
 juce::File SolarisProcessor::presetFolder()
 {
-    return juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("SOLARIS-23").getChildFile("Presets");
+    auto docs = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
+    auto dir = docs.getChildFile("SOLARIUM-23A").getChildFile("Presets");
+    /* (the plugin was called SOLARIS-23 before v1.3: its own programs come along, copied once) */
+    auto old = docs.getChildFile("SOLARIS-23").getChildFile("Presets");
+    if (!dir.isDirectory() && old.isDirectory() && dir.createDirectory())
+        for (auto &f : old.findChildFiles(juce::File::findFiles, false, "*.s23"))
+            f.copyFileTo(dir.getChildFile(f.getFileName()));
+    return dir;
 }
 
 void SolarisProcessor::loadUserPresets()

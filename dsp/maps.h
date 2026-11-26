@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* What each knob's 0..1 means: shared by the engine and the value texts, so the panel shows what sounds. */
 #pragma once
 #include <cmath>

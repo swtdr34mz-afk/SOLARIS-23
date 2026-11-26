@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* SOLARIS-23's engine checked without JUCE or the MPC: every program at several rates (sound, no NaN, no overs),
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
+/* SOLARIUM-23A's engine checked without JUCE or the MPC: every program at several rates (sound, no NaN, no overs),
  * any buffer size the same bit for bit, every parameter swept while it plays, every effect, the CPU.
  *
  *   engine_tests                   all checks

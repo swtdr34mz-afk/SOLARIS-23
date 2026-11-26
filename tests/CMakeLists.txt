@@ -1,4 +1,4 @@
-# SOLARIS-23's engine tests (no JUCE):  cmake -S tests -B build-tests && cmake --build build-tests && build-tests/engine_tests
+# SOLARIUM-23A's engine tests (no JUCE):  cmake -S tests -B build-tests && cmake --build build-tests && build-tests/engine_tests
 cmake_minimum_required(VERSION 3.22)
 project(SolarisTests CXX)
 set(CMAKE_CXX_STANDARD 17)

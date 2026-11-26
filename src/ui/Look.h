@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* SOLARIS-23's look: a heavy-aged relic. A black, rough steel panel with decades of wear (scratches, scuffs to the
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
+/* SOLARIUM-23A's look: a heavy-aged relic. A black, rough steel panel with decades of wear (scratches, scuffs to the
  * primer, chipped edges, grime, rust at the screws), bone print worn thin, black bakelite / brushed aluminium / bone /
  * oxide-red caps, dulled chrome toggles, push buttons, drone keys, old glass light sensors, amber LCDs, brass touch
  * plates. Fonts embedded (Fira Sans, Anonymous Pro: SIL OFL, fonts/). */

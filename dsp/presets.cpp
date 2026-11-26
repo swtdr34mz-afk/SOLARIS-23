@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The factory programs: each one the parameters' defaults with its own changes. The drones are tuned in notes and
  * cents (a microtonal machine: a few cents apart they beat, which is the point). */
 #include "solaris.h"

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* One side of the dual effector: a cartridge program (24, solaris.h's fxName), mono in, the wet signal out, its
  * X, Y, Z (0..1). A new program fades the old one out, clears it and fades in (no clicks, no old tails). */
 #pragma once

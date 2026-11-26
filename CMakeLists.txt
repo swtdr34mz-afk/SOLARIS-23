@@ -1,4 +1,4 @@
-# SOLARIS-23: the plugin (VST3, AU on the Mac) and the standalone app, with JUCE 8.
+# SOLARIUM-23A: the plugin (VST3, AU on the Mac) and the standalone app, with JUCE 8.
 #   cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release
 # JUCE comes from GitHub (or -DS23_JUCE_DIR=/path/to/JUCE).
 cmake_minimum_required(VERSION 3.22)
@@ -13,7 +13,7 @@ if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-project(SOLARIS23 VERSION 1.2.0 LANGUAGES C CXX)
+project(SOLARIS23 VERSION 1.3.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -35,11 +35,11 @@ if(APPLE)
 endif()
 
 juce_add_plugin(Solaris23
-    PRODUCT_NAME "SOLARIS-23"
+    PRODUCT_NAME "SOLARIUM-23A"
     COMPANY_NAME "swtdr34mz"
     BUNDLE_ID "com.swtdr34mz.solaris23"
     PLUGIN_MANUFACTURER_CODE Swtd
-    PLUGIN_CODE So23
+    PLUGIN_CODE So23                     # (kept from SOLARIS-23, its name before v1.3: hosts find their projects)
     FORMATS ${S23_FORMATS}
     IS_SYNTH TRUE
     NEEDS_MIDI_INPUT TRUE

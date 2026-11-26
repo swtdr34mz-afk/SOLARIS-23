@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* SOLARIS-23: a microtonal drone and ambient machine, after the idea of the analogue drone synths of the 2020s.
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
+/* SOLARIUM-23A: a microtonal drone and ambient machine, after the idea of the analogue drone synths of the 2020s.
  *
  * Eight voices into a stereo mixer with pan, a dual 12 dB filter (low-pass or band-pass, Polivoks-style), a stereo
  * distortion after it and a dual effector (a cartridge program each side). The same engine runs in the VST3 / the

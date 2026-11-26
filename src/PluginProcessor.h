@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* SOLARIS-23 as a plugin (VST3, AU on the Mac) and a standalone app: the engine (dsp/solaris.h), all its parameters
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
+/* SOLARIUM-23A as a plugin (VST3, AU on the Mac) and a standalone app: the engine (dsp/solaris.h), all its parameters
  * for the host (automation, saved with the project), its programs as the host's programs (the factory's, then your
- * own: files in Documents/SOLARIS-23/Presets), MIDI in (notes to the VCOs, pitch bend, the mod wheel to the
+ * own: files in Documents/SOLARIUM-23A/Presets), MIDI in (notes to the VCOs, pitch bend, the mod wheel to the
  * joystick's Y, CC 120/123), the host's tempo and position for the sequencer. */
 #pragma once
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -23,7 +23,7 @@ public:
     juce::AudioProcessorEditor *createEditor() override;
     bool hasEditor() const override { return true; }
 
-    const juce::String getName() const override { return "SOLARIS-23"; }
+    const juce::String getName() const override { return "SOLARIUM-23A"; }
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The dual effector's programs. Eight cartridges of three (X, Y, Z as solaris.h's fxLabel names them):
  *
  *   NEBULA   0 SHIMMER (oct up, decay, tone)  1 CLOUD (size, decay, motion)  2 HALL (pre-delay, decay, damp)

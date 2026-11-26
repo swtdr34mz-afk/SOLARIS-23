@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The plugin's panel as a picture, drawn by its own editor without a host:  s23_panel <out.png> [scale]
  * s23_panel --rightclick: every control right-clicked and right-dragged in a (pretend) host: no value
  * may change, and in the host each control's click opens the host's menu for its parameter */

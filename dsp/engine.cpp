@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
-/* SOLARIS-23's engine (solaris.h): the eight voices, the modulation, the mixer, the dual filter, the distortion and
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
+/* SOLARIUM-23A's engine (solaris.h): the eight voices, the modulation, the mixer, the dual filter, the distortion and
  * the dual effector, rendered in blocks of 16 samples (the control rate; the modulation and the knobs move once a
  * block, the audio runs per sample). */
 #include "solaris.h"

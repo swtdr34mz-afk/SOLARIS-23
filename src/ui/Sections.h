@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The panel's sections, each built at its place on the page (PluginEditor.cpp lays them out). Every control is a
  * child of the page; the page draws the panel, the sections' frames and the printed labels. */
 #pragma once

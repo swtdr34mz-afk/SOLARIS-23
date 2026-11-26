@@ -1,9 +1,9 @@
-# SOLARIS-23
+# SOLARIUM-23A
 
 A microtonal drone and ambient machine as a plugin: a **VST3** and a **standalone app** for Windows, and **VST3, AU**
 and the **app** for the Mac (Apple Silicon and Intel in one file). By **swtdr34mz**. (A version for the M-Vave FM-1 is its own project.)
 
-![SOLARIS-23](docs/panel.png)
+![SOLARIUM-23A](docs/panel.png)
 
 Eight voices into a stereo mixer, a dual 12 dB filter, a stereo distortion and a dual effector:
 
@@ -40,7 +40,7 @@ Eight voices into a stereo mixer, a dual 12 dB filter, a stereo distortion and a
   to tune it up to 12 semitones up or down, freely (microtonal) or in semitones (TUNE GRID SEMI). Each plate's note is
   printed under it; the tunings are kept with the project and your own presets. MIDI keys stay in equal temperament.
 - **TUNE GRID:** FREE (microtonal, as the instrument) or SEMI (every drone oscillator on the nearest semitone).
-- **16 programs**, and your own (SAVE: files in `Documents/SOLARIS-23/Presets`).
+- **16 programs**, and your own (SAVE: files in `Documents/SOLARIUM-23A/Presets`).
 
 Unofficial: inspired by the analogue drone machines of the 2020s; not made, endorsed or supported by any of their
 makers, and no part of their designs, names or panels.
@@ -48,33 +48,38 @@ makers, and no part of their designs, names or panels.
 ## Download
 
 [Actions](https://github.com/swtdr34mz-afk/SOLARIS-23/actions) → the newest green run → **Artifacts** at the bottom:
-`SOLARIS23-Windows` (VST3 + app) and `SOLARIS23-macOS` (VST3, AU + app); a GitHub sign-in is needed for artifacts.
+`SOLARIUM-23A-Windows` (VST3 + app) and `SOLARIUM-23A-macOS` (VST3, AU + app); a GitHub sign-in is needed for artifacts.
 A release (a tag `v1.2` and so on) carries the same zips under [Releases](https://github.com/swtdr34mz-afk/SOLARIS-23/releases).
 
 ## Installieren (kurz auf Deutsch)
 
+**Umbenannt:** Bis v1.2 hieß das Plugin **SOLARIS-23**. Beim Update bitte die alte `SOLARIS-23.vst3` (auf dem Mac auch
+`SOLARIS-23.component`) löschen, sonst steht das Plugin zweimal in der Liste. Alte Projekte laden weiter (die interne
+Kennung ist gleich geblieben), und eigene Presets aus `Documents/SOLARIS-23/Presets` werden beim ersten Start in den
+neuen Ordner kopiert.
+
 **Windows (Cubase):**
 1. Zip entpacken.
-2. Den Ordner `SOLARIS-23.vst3` nach `C:\Program Files\Common Files\VST3\` kopieren.
-3. Cubase starten (oder *Studio → VST-PlugIn-Manager → Aktualisieren*). SOLARIS-23 steht unter den Instrumenten,
+2. Den Ordner `SOLARIUM-23A.vst3` nach `C:\Program Files\Common Files\VST3\` kopieren.
+3. Cubase starten (oder *Studio → VST-PlugIn-Manager → Aktualisieren*). SOLARIUM-23A steht unter den Instrumenten,
    Hersteller swtdr34mz.
-4. `SOLARIS-23.exe` ist die Standalone-App. Audio- und MIDI-Gerät stellt man unter *Options* ein.
+4. `SOLARIUM-23A.exe` ist die Standalone-App. Audio- und MIDI-Gerät stellt man unter *Options* ein.
 
 Windows SmartScreen kann beim ersten Start der App warnen (sie ist nicht signiert): *Weitere Informationen →
 Trotzdem ausführen*.
 
 **Mac (Ableton Live, Logic, Cubase …; macOS 10.13 oder neuer, Apple Silicon und Intel):**
-1. `SOLARIS23-macOS.zip` per Doppelklick entpacken.
+1. `SOLARIUM-23A-macOS.zip` per Doppelklick entpacken.
 2. Im Finder *Gehe zu → Gehe zum Ordner …* (⇧⌘G) und `~/Library/Audio/Plug-Ins/` eingeben.
-3. `SOLARIS-23.vst3` in den Ordner `VST3` kopieren, `SOLARIS-23.component` in den Ordner `Components`
+3. `SOLARIUM-23A.vst3` in den Ordner `VST3` kopieren, `SOLARIUM-23A.component` in den Ordner `Components`
    (Logic und GarageBand nehmen nur das AU, Ableton und Cubase das VST3 oder das AU).
 4. Weil das Plugin nicht bei Apple beglaubigt ist, blockiert macOS es sonst: *Terminal* öffnen und eingeben
    ```
-   xattr -cr ~/Library/Audio/Plug-Ins/VST3/SOLARIS-23.vst3 ~/Library/Audio/Plug-Ins/Components/SOLARIS-23.component
+   xattr -cr ~/Library/Audio/Plug-Ins/VST3/SOLARIUM-23A.vst3 ~/Library/Audio/Plug-Ins/Components/SOLARIUM-23A.component
    ```
-   (für die App genauso: `xattr -cr /Pfad/zu/SOLARIS-23.app`, oder Rechtsklick → *Öffnen*).
+   (für die App genauso: `xattr -cr /Pfad/zu/SOLARIUM-23A.app`, oder Rechtsklick → *Öffnen*).
 5. Ableton Live: *Einstellungen → Plug-Ins →* „VST3-Plug-In-Systemordner verwenden“ und „Audio Units“ an,
-   dann *Neu scannen*. SOLARIS-23 steht unter *Plug-Ins → swtdr34mz*.
+   dann *Neu scannen*. SOLARIUM-23A steht unter *Plug-Ins → swtdr34mz*.
    Logic: beim nächsten Start prüft Logic das AU von selbst (unter *Instrumente → AU-Instrumente → swtdr34mz*).
 
 ## In the plugin
@@ -121,7 +126,7 @@ pluginval, and builds the Mac (universal) and checks the AU with auval.
 
 ## Licence
 
-The SOLARIS-23 code is under the [Mozilla Public License 2.0](LICENSE). The plugin is built with
+The SOLARIUM-23A code is under the [Mozilla Public License 2.0](LICENSE). The plugin is built with
 [JUCE](https://juce.com) 8, used under the AGPLv3 (JUCE's open-source licence), so the plugin binaries are distributed
 under the AGPLv3 with this source. The fonts are Fira Sans and Anonymous Pro (SIL OFL, `fonts/`). VST is a trademark of
 Steinberg Media Technologies GmbH.

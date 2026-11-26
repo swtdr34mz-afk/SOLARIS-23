@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The panel's controls, each tied to host parameters: a knob (on a choice it steps, its value in a small LCD), a
  * switch (a metal toggle, a round push button, a drone key), the joystick (X and Y), a cartridge slot (an effect
  * program), the touch plates, a lamp (an LED, the light sensor). Touching one reports it, for the readout. */

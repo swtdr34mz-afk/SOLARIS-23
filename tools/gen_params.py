@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
-# Copyright (C) 2026 swtdr34mz (SOLARIS-23)
-"""Writes dsp/params_list.inc: SOLARIS-23's parameters, one line each, in their permanent order.
+# Copyright (C) 2026 swtdr34mz (SOLARIUM-23A)
+"""Writes dsp/params_list.inc: SOLARIUM-23A's parameters, one line each, in their permanent order.
 
     python3 tools/gen_params.py
 

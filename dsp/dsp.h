@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* Small DSP blocks shared by the engine and the effector: fast maths, noise, band-limited steps, delay lines. */
 #pragma once
 #include <cmath>

@@ -37,7 +37,7 @@ target_sources(s23_panel PRIVATE
     ${R}/dsp/presets.cpp)
 target_include_directories(s23_panel PRIVATE ${R}/dsp ${R}/src ${R}/src/ui)
 target_compile_definitions(s23_panel PRIVATE
-    JucePlugin_Name="SOLARIS-23" JucePlugin_IsSynth=1 JucePlugin_WantsMidiInput=1 JucePlugin_ProducesMidiOutput=0
+    JucePlugin_Name="SOLARIUM-23A" JucePlugin_IsSynth=1 JucePlugin_WantsMidiInput=1 JucePlugin_ProducesMidiOutput=0
     JucePlugin_IsMidiEffect=0 JucePlugin_EditorRequiresKeyboardFocus=0
     JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_ALSA=0 JUCE_JACK=0 JUCE_DISPLAY_SPLASH_SCREEN=0 JUCE_REPORT_APP_USAGE=0
     JUCE_USE_XRANDR=0 JUCE_USE_XINERAMA=0 JUCE_USE_XSHM=0 JUCE_USE_XRENDER=0 JUCE_USE_XCURSOR=0

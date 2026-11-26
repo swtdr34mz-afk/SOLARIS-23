@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The parameters (dsp/params_list.inc, made by tools/gen_params.py), their choices and their value texts. */
 #include "solaris.h"
 #include "maps.h"

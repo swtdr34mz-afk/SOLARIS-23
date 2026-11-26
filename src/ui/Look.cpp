@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: MPL-2.0
- * Copyright (C) 2026 swtdr34mz (SOLARIS-23) */
+ * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 /* The relic, built as hardware: a black steel panel under a rough powder coat (its relief computed at the screen's
  * own pixel density and lit from the upper left), decades of wear on it; knobs with knurled skirts (each rib a lit
  * facet), chamfered edges, bakelite, bone and oxide caps or spun aluminium; engraved, paint-filled pointers; push
@@ -900,12 +900,12 @@ void drawTag(Graphics &g, Rectangle<float> r)
     g.drawImageWithin(tag, ri.getX(), ri.getY(), ri.getWidth(), ri.getHeight(), RectanglePlacement::centred | RectanglePlacement::onlyReduceInSize);
 }
 
-/* SOLARIS in wide bone letters, -23 in rust */
+/* SOLARIUM in wide bone letters, -23A in rust */
 void drawLogo(Graphics &g, Rectangle<float> r)
 {
     auto f = font(Face::logo, r.getHeight() * 0.82f).withExtraKerningFactor(0.12f);
     g.setFont(f);
-    String a = "SOLARIS", b = "-23";
+    String a = "SOLARIUM", b = "-23A";
     GlyphArrangement ga;
     ga.addLineOfText(f, a, 0, 0);
     float wa = ga.getBoundingBox(0, -1, true).getWidth();

@@ -90,6 +90,24 @@ int main(int argc, char **argv)
         int f = rightClicks(proc, *ed, true);   /* (the standalone's own choice list needs a screen) */
         return f == 0 ? 0 : 1;
     }
+    if (!std::strcmp(argv[1], "--resizebench")) {   /* (the window dragged larger and smaller: ms per frame) */
+        SolarisProcessor proc;
+        std::unique_ptr<AudioProcessorEditor> ed(proc.createEditor());
+        ed->setSize(SolarisEditor::W, SolarisEditor::H);
+        ed->createComponentSnapshot(ed->getLocalBounds(), true, 1.0f);
+        double worst = 0, sum = 0;
+        for (int i = 0; i < 20; i++) {
+            float s = 0.8f + 0.03f * (float)i;
+            ed->setSize((int)(SolarisEditor::W * s), (int)(SolarisEditor::H * s));
+            auto t0 = Time::getMillisecondCounterHiRes();
+            ed->createComponentSnapshot(ed->getLocalBounds(), true, 1.0f);
+            double ms = Time::getMillisecondCounterHiRes() - t0;
+            worst = jmax(worst, ms);
+            sum += ms;
+        }
+        std::printf("resize: %.1f ms per frame on average, %.1f ms the slowest\n", sum / 20.0, worst);
+        return 0;
+    }
     float scale = argc > 2 ? (float)std::atof(argv[2]) : 1.0f;
     SolarisProcessor proc;
     std::unique_ptr<AudioProcessorEditor> ed(proc.createEditor());

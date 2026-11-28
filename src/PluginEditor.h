@@ -13,8 +13,8 @@ public:
     explicit SolarisEditor(SolarisProcessor &);
     ~SolarisEditor() override;
     void resized() override;
+    void paint(juce::Graphics &) override;
     bool sized = false;                      /* (resizes during the constructor keep nothing) */
-    void paint(juce::Graphics &) override {}
 
 private:
     void timerCallback() override;
@@ -28,6 +28,8 @@ private:
     s23::Page page;
     juce::RangedAudioParameter *inHand = nullptr;
     juce::String headerKey;
+    int resizeTicks = 0;
+    juce::Image frozen;                  /* (the panel's picture while the window is resized) */
     struct Header;
     std::unique_ptr<juce::Component> header;
     std::vector<juce::Component *> lamps;

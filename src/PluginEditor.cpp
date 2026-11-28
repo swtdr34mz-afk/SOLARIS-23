@@ -138,10 +138,35 @@ SolarisEditor::~SolarisEditor()
     releaseResources();                  /* (the last editor: the fonts and pictures go now, not at unload) */
 }
 
+void SolarisEditor::paint(Graphics &g)
+{
+    if (frozen.isValid()) {              /* (being resized: the panel's picture, stretched) */
+        g.setImageResamplingQuality(Graphics::lowResamplingQuality);
+        g.drawImage(frozen, getLocalBounds().toFloat());
+    } else
+        g.fillAll(Colours::black);
+}
+
 void SolarisEditor::resized()
 {
     float s = (float)getWidth() / (float)W;
+    if (sized && !frozen.isValid() && page.isVisible() && page.getWidth() > 0) {
+        /* the window is being dragged larger or smaller: the panel as one picture, taken once at the size it had,
+           only stretched while it moves (drawing ~200 controls afresh at every step made it judder); drawn sharp
+           again once it has come to rest */
+        float before = page.getTransform().getScaleFactor();
+        float dpi = 1.0f;
+        if (auto *d = Desktop::getInstance().getDisplays().getDisplayForRect(getScreenBounds()))
+            dpi = (float)d->scale;
+        frozen = page.createComponentSnapshot(page.getLocalBounds(), true, jlimit(0.5f, 4.0f, before * dpi));
+        page.setVisible(false);
+    }
     page.setTransform(AffineTransform::scale(s));
+    if (sized) {
+        getProperties().set("liveResize", true);
+        resizeTicks = 0;
+        repaint();
+    }
     if (!sized)
         return;
     proc.uiScale = s;
@@ -150,6 +175,12 @@ void SolarisEditor::resized()
 
 void SolarisEditor::timerCallback()
 {
+    if ((bool)getProperties()["liveResize"] && ++resizeTicks > 8) {   /* ~0.25 s without a change: drawn sharp again */
+        getProperties().set("liveResize", false);
+        frozen = {};
+        page.setVisible(true);
+        page.repaint();
+    }
     for (auto *c : lamps) {              /* only what has moved */
         if (auto *l = dynamic_cast<Lamp *>(c)) {
             if (l->changed())

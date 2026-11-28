@@ -12,6 +12,33 @@ namespace s23
 {
 using APVTS = juce::AudioProcessorValueTreeState;
 
+/* while the window is being resized, everything already drawn is only stretched (drawn afresh once it is let go:
+   the editor sets the property "liveResize" on itself) */
+bool liveResizing(const juce::Component &);
+
+/* a control's picture, drawn at the screen's pixel density and only again when its look (key) changes */
+struct Snap {
+    juce::Image img;
+    float scale = 0.0f;
+    juce::String key;
+    template <class Draw> void paint(juce::Component &c, juce::Graphics &g, const juce::String &k, Draw draw)
+    {
+        const float sc = juce::jlimit(1.0f, 8.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
+        const bool fits = std::fabs(sc - scale) < 0.01f || liveResizing(c);
+        if (!img.isValid() || k != key || !fits || img.getWidth() < 1) {
+            scale = sc;
+            key = k;
+            img = juce::Image(juce::Image::ARGB, juce::jmax(1, (int)std::ceil((float)c.getWidth() * sc)),
+                              juce::jmax(1, (int)std::ceil((float)c.getHeight() * sc)), true);
+            juce::Graphics ig(img);
+            ig.addTransform(juce::AffineTransform::scale((float)img.getWidth() / (float)juce::jmax(1, c.getWidth()),
+                                                         (float)img.getHeight() / (float)juce::jmax(1, c.getHeight())));
+            draw(ig);
+        }
+        g.drawImage(img, c.getLocalBounds().toFloat());
+    }
+};
+
 struct Touch {
     virtual ~Touch() = default;
     virtual void touched(juce::RangedAudioParameter &) = 0;
@@ -22,6 +49,7 @@ class Knob : public juce::Slider
 public:
     Knob(APVTS &, const juce::String &id, const juce::String &legend, KS style, Touch *);
     void paint(juce::Graphics &) override;
+    void paintFace(juce::Graphics &);
     void mouseEnter(const juce::MouseEvent &) override;
     void mouseDown(const juce::MouseEvent &) override;
     void mouseDrag(const juce::MouseEvent &) override;
@@ -38,6 +66,7 @@ public:
 private:
     bool bipolar = false;
     Touch *touch;
+    Snap snap;
     std::unique_ptr<APVTS::SliderAttachment> att;
 };
 
@@ -46,6 +75,7 @@ class Switch : public juce::Component
 public:
     Switch(APVTS &, const juce::String &id, const juce::String &legend, SW style, Touch *);
     void paint(juce::Graphics &) override;
+    void paintFace(juce::Graphics &);
     void mouseDown(const juce::MouseEvent &) override;
     void mouseUp(const juce::MouseEvent &) override;
     void mouseEnter(const juce::MouseEvent &) override;
@@ -59,6 +89,7 @@ private:
     Touch *touch;
     bool down = false;
     juce::ParameterAttachment att;
+    Snap snap;
 };
 
 class XYPad : public juce::Component
@@ -190,7 +221,7 @@ public:
     void paint(juce::Graphics &g) override
     {
         const float sc = juce::jlimit(1.0f, 8.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
-        if (std::fabs(sc - scale) > 0.01f || getWidth() != w || getHeight() != h) {
+        if ((std::fabs(sc - scale) > 0.01f && !(scale > 0.0f && liveResizing(*this))) || getWidth() != w || getHeight() != h) {
             scale = sc;
             w = getWidth();
             h = getHeight();

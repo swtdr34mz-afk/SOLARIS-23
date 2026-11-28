@@ -34,7 +34,6 @@ static float LYf() { return -0.78f; }
 Knob::Knob(APVTS &s, const String &id, const String &leg, KS st, Touch *t)
     : param(*s.getParameter(id)), legend(leg), style(st), touch(t)
 {
-    setBufferedToImage(true);            /* (drawn again only when it turns: the Mac may repaint everything at once) */
     setSliderStyle(Slider::RotaryVerticalDrag);
     setTextBoxStyle(Slider::NoTextBox, false, 0, 0);
     setMouseDragSensitivity(220);
@@ -61,7 +60,20 @@ Rectangle<float> Knob::knobArea() const
     return Rectangle<float>(d, d).withCentre(r.getCentre());
 }
 
+bool liveResizing(const Component &c)
+{
+    auto *ed = c.findParentComponentOfClass<AudioProcessorEditor>();
+    return ed != nullptr && (bool)ed->getProperties()["liveResize"];
+}
+
+/* (drawn again only when it turns: the Mac may repaint everything at once, and a resize only stretches it) */
 void Knob::paint(Graphics &g)
+{
+    String key = String(param.getValue(), 6) + (showValue ? param.getCurrentValueAsText() : String());
+    snap.paint(*this, g, key, [this](Graphics &ig) { paintFace(ig); });
+}
+
+void Knob::paintFace(Graphics &g)
 {
     drawKnob(g, knobArea(), param.getValue(), style, bipolar, ticks);
     auto r = getLocalBounds().toFloat();
@@ -129,11 +141,15 @@ void Knob::mouseDoubleClick(const MouseEvent &e)
 Switch::Switch(APVTS &s, const String &id, const String &leg, SW st, Touch *t)
     : param(*s.getParameter(id)), legend(leg), style(st), touch(t), att(param, [this](float) { repaint(); }, nullptr)
 {
-    setBufferedToImage(true);
     att.sendInitialUpdate();
 }
 
 void Switch::paint(Graphics &g)
+{
+    snap.paint(*this, g, String(on() ? 1 : 0) + (down ? "d" : "u"), [this](Graphics &ig) { paintFace(ig); });
+}
+
+void Switch::paintFace(Graphics &g)
 {
     auto r = getLocalBounds().toFloat();
     if (style == SW::key) {              /* a drone key: its number printed below */

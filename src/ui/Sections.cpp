@@ -14,7 +14,8 @@ void Page::paint(Graphics &g)
     /* the background (the panel, its coat, the frames, the print, the wear) drawn once at the screen's own pixel
      * density (up to an 8K screen filled), then only copied */
     const float sc = jlimit(1.0f, 6.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
-    if (!cache.isValid() || std::fabs(sc - cacheScale) > 0.02f) {
+    const bool live = cache.isValid() && liveResizing(*this);   /* (being resized: the picture only stretched) */
+    if (!cache.isValid() || (std::fabs(sc - cacheScale) > 0.02f && !live)) {
         cacheScale = sc;
         cache = Image(Image::RGB, (int)std::ceil((float)getWidth() * sc), (int)std::ceil((float)getHeight() * sc), false);
         Graphics cg(cache);
@@ -29,7 +30,7 @@ void Page::paint(Graphics &g)
         paintBackground(cg, 1.0f / sc);
     }
     Graphics::ScopedSaveState s(g);
-    g.setImageResamplingQuality(Graphics::highResamplingQuality);
+    g.setImageResamplingQuality(live ? Graphics::mediumResamplingQuality : Graphics::highResamplingQuality);
     g.drawImage(cache, getLocalBounds().toFloat());
 }
 

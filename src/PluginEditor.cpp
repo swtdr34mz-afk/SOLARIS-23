@@ -111,6 +111,8 @@ SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), pr
     header = std::make_unique<Header>(*this);
     header->setBounds(0, 0, W, 60);
     page.addAndMakeVisible(*header);
+    makeShade();                         /* (the section zoom's veil, hidden until a section is zoomed) */
+    page.onSection = [this](int i) { zoomTo(i); };
     for (auto *c : page.getChildren())
         if (dynamic_cast<Lamp *>(c) || dynamic_cast<Plates *>(c))
             lamps.push_back(c);
@@ -138,6 +140,108 @@ SolarisEditor::~SolarisEditor()
     releaseResources();                  /* (the last editor: the fonts and pictures go now, not at unload) */
 }
 
+/* the zoom's veil: the panel around the shown section darkened (a click there, or on the X, shows the whole panel
+   again); the section itself takes the clicks as ever */
+struct SolarisEditor::Shade : Component {
+    SolarisEditor &ed;
+    Rectangle<float> hole;               /* (the section, in the editor's coordinates) */
+    explicit Shade(SolarisEditor &e) : ed(e) { setInterceptsMouseClicks(true, false); }
+    Rectangle<float> closeBox() const
+    {
+        float d = jlimit(26.0f, 40.0f, hole.getWidth() * 0.05f);
+        return {hole.getRight() - d * 0.55f, hole.getY() - d * 0.45f, d, d};
+    }
+    bool hitTest(int x, int y) override
+    {
+        Point<float> p((float)x, (float)y);
+        return closeBox().contains(p) || !hole.contains(p);
+    }
+    void paint(Graphics &g) override
+    {
+        Path veil;
+        veil.addRectangle(getLocalBounds().toFloat());
+        veil.addRoundedRectangle(hole.expanded(3.0f), 6.0f);
+        veil.setUsingNonZeroWinding(false);
+        g.setColour(Colours::black.withAlpha(0.72f));
+        g.fillPath(veil);
+        auto c = closeBox();             /* the X: a round bone-coloured button */
+        g.setColour(Colours::black.withAlpha(0.5f));
+        g.fillEllipse(c.translated(0.0f, 2.0f));
+        g.setColour(Colour(0xffd8d2c4));
+        g.fillEllipse(c);
+        g.setColour(Colour(0xff151515));
+        auto x = c.reduced(c.getWidth() * 0.32f);
+        g.drawLine({x.getTopLeft(), x.getBottomRight()}, 2.4f);
+        g.drawLine({x.getTopRight(), x.getBottomLeft()}, 2.4f);
+    }
+    void mouseDown(const MouseEvent &) override { ed.zoomTo(-1); }
+    void mouseMove(const MouseEvent &e) override
+    {
+        setMouseCursor(closeBox().contains(e.position) ? MouseCursor::PointingHandCursor : MouseCursor::NormalCursor);
+    }
+};
+
+void SolarisEditor::makeShade()
+{
+    shade = std::make_unique<Shade>(*this);
+    addChildComponent(*shade);
+}
+
+AffineTransform SolarisEditor::pageTransform(int section) const
+{
+    const float s = (float)getWidth() / (float)W;
+    if (section < 0 || section >= (int)page.sections.size())
+        return AffineTransform::scale(s);
+    /* the section (and a margin) as large as the window allows, in its middle; at most 4 times the panel's size */
+    auto r = page.sections[(size_t)section].r.expanded(14.0f);
+    float z = jmin((float)getWidth() / r.getWidth(), (float)getHeight() / r.getHeight(), s * 4.0f);
+    float tx = ((float)getWidth() - r.getWidth() * z) * 0.5f - r.getX() * z;
+    float ty = ((float)getHeight() - r.getHeight() * z) * 0.5f - r.getY() * z;
+    return AffineTransform::scale(z).translated(tx, ty);
+}
+
+void SolarisEditor::zoomTo(int section)
+{
+    if (section == zoomed)
+        section = -1;                    /* (its tab again: back) */
+    zoomed = section;
+    animFrom = page.getTransform();
+    animTo = pageTransform(section);
+    animStart = Time::getMillisecondCounterHiRes() - (isShowing() ? 0.0 : 1000.0);   /* (not on screen: no animation) */
+    getProperties().set("liveResize", true);   /* (while it moves: everything only stretched) */
+    page.setZoom({});
+    if (section >= 0) {
+        shade->setVisible(true);
+        shade->toFront(false);
+    }
+    anim.startTimerHz(60);
+    animate();
+}
+
+void SolarisEditor::animate()
+{
+    double t = jlimit(0.0, 1.0, (Time::getMillisecondCounterHiRes() - animStart) / 220.0);
+    float e = (float)(1.0 - std::pow(1.0 - t, 3.0));   /* (eases out) */
+    auto lerp = [e](float a, float b) { return a + (b - a) * e; };
+    AffineTransform m(lerp(animFrom.mat00, animTo.mat00), 0.0f, lerp(animFrom.mat02, animTo.mat02),
+                      0.0f, lerp(animFrom.mat11, animTo.mat11), lerp(animFrom.mat12, animTo.mat12));
+    page.setTransform(m);
+    auto *sh = static_cast<Shade *>(shade.get());
+    if (zoomed >= 0) {
+        sh->hole = page.sections[(size_t)zoomed].r.transformedBy(m);
+        sh->repaint();
+    }
+    if (t >= 1.0) {
+        anim.stopTimer();
+        getProperties().set("liveResize", false);
+        if (zoomed >= 0)
+            page.setZoom(page.sections[(size_t)zoomed].r);
+        else
+            sh->setVisible(false);
+        page.repaint();
+    }
+}
+
 void SolarisEditor::paint(Graphics &g)
 {
     if (frozen.isValid()) {              /* (being resized: the panel's picture, stretched) */
@@ -150,7 +254,7 @@ void SolarisEditor::paint(Graphics &g)
 void SolarisEditor::resized()
 {
     float s = (float)getWidth() / (float)W;
-    if (sized && !frozen.isValid() && page.isVisible() && page.getWidth() > 0) {
+    if (sized && zoomed < 0 && !frozen.isValid() && page.isVisible() && page.getWidth() > 0) {
         /* the window is being dragged larger or smaller: the panel as one picture, taken once at the size it had,
            only stretched while it moves (drawing ~200 controls afresh at every step made it judder); drawn sharp
            again once it has come to rest */
@@ -161,7 +265,12 @@ void SolarisEditor::resized()
         frozen = page.createComponentSnapshot(page.getLocalBounds(), true, jlimit(0.5f, 4.0f, before * dpi));
         page.setVisible(false);
     }
-    page.setTransform(AffineTransform::scale(s));
+    page.setTransform(pageTransform(zoomed));
+    if (shade) {
+        shade->setBounds(getLocalBounds());
+        if (zoomed >= 0)
+            static_cast<Shade *>(shade.get())->hole = page.sections[(size_t)zoomed].r.transformedBy(page.getTransform());
+    }
     if (sized) {
         getProperties().set("liveResize", true);
         resizeTicks = 0;
@@ -173,14 +282,18 @@ void SolarisEditor::resized()
     winsize::remember("SOLARIUM-23A", (double)s);
 }
 
+void SolarisEditor::settle()
+{
+    getProperties().set("liveResize", false);
+    frozen = {};
+    page.setVisible(true);
+    page.repaint();
+}
+
 void SolarisEditor::timerCallback()
 {
-    if ((bool)getProperties()["liveResize"] && ++resizeTicks > 8) {   /* ~0.25 s without a change: drawn sharp again */
-        getProperties().set("liveResize", false);
-        frozen = {};
-        page.setVisible(true);
-        page.repaint();
-    }
+    if ((bool)getProperties()["liveResize"] && !anim.isTimerRunning() && ++resizeTicks > 8)   /* ~0.25 s at rest: sharp again */
+        settle();
     for (auto *c : lamps) {              /* only what has moved */
         if (auto *l = dynamic_cast<Lamp *>(c)) {
             if (l->changed())

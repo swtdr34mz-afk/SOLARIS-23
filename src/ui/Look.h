@@ -46,6 +46,7 @@ void drawPanelEdge(juce::Graphics &, juce::Rectangle<float> r);
 const juce::Image &coatTile(float pixelsPerUnit);   /* the coat's relief, made for this density (tiles seamlessly) */
 void drawScrew(juce::Graphics &, juce::Point<float> c, float r);
 void drawSection(juce::Graphics &, juce::Rectangle<float> r, const juce::String &title, Sec s);
+juce::Rectangle<float> sectionTab(juce::Rectangle<float> r, const juce::String &title);   /* its name tab (click: zoom) */
 void drawKnob(juce::Graphics &, juce::Rectangle<float> r, float pos, KS style, bool bipolar, bool ticks);
 void drawToggle(juce::Graphics &, juce::Rectangle<float> r, bool up);
 void drawButton(juce::Graphics &, juce::Rectangle<float> r, bool on, bool down, bool lens);

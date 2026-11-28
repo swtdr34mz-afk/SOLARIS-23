@@ -15,7 +15,7 @@ void Page::paint(Graphics &g)
      * density (up to an 8K screen filled), then only copied */
     const float sc = jlimit(1.0f, 6.0f, (float)g.getInternalContext().getPhysicalPixelScaleFactor());
     const bool live = cache.isValid() && liveResizing(*this);   /* (being resized: the picture only stretched) */
-    if (!cache.isValid() || (std::fabs(sc - cacheScale) > 0.02f && !live)) {
+    if (!cache.isValid() || (std::fabs(sc - cacheScale) > 0.02f && !live && zoomR.isEmpty())) {
         cacheScale = sc;
         cache = Image(Image::RGB, (int)std::ceil((float)getWidth() * sc), (int)std::ceil((float)getHeight() * sc), false);
         Graphics cg(cache);
@@ -32,6 +32,60 @@ void Page::paint(Graphics &g)
     Graphics::ScopedSaveState s(g);
     g.setImageResamplingQuality(live ? Graphics::mediumResamplingQuality : Graphics::highResamplingQuality);
     g.drawImage(cache, getLocalBounds().toFloat());
+    if (zoomR.isEmpty() || sc <= cacheScale * 1.02f)
+        return;
+    /* zoomed in: the shown section from a picture of its own at the zoom's resolution (the whole panel at that
+       resolution would be hundreds of megabytes) */
+    if (!live && (!zoomCache.isValid() || std::fabs(sc - zoomScale) > 0.02f)) {
+        zoomScale = sc;
+        const float zsc = jmin(sc, 12.0f);
+        zoomCache = Image(Image::RGB, jmax(1, (int)std::ceil(zoomR.getWidth() * zsc)), jmax(1, (int)std::ceil(zoomR.getHeight() * zsc)), false);
+        Graphics cg(zoomCache);
+        const auto toZoom = AffineTransform::translation(-zoomR.getX(), -zoomR.getY()).scaled(zsc);
+        {
+            Graphics::ScopedSaveState s2(cg);
+            cg.addTransform(toZoom);
+            drawPanel(cg, getLocalBounds().toFloat());
+        }
+        cg.setTiledImageFill(coatTile(zsc), (int)std::lround(-zoomR.getX() * zsc), (int)std::lround(-zoomR.getY() * zsc), 1.0f);
+        cg.fillAll();
+        cg.addTransform(toZoom);
+        paintBackground(cg, 1.0f / zsc);
+    }
+    if (zoomCache.isValid())
+        g.drawImage(zoomCache, zoomR);
+}
+
+void Page::setZoom(juce::Rectangle<float> r)
+{
+    if (r == zoomR)
+        return;
+    zoomR = r;
+    zoomCache = {};
+    zoomScale = 0.0f;
+    repaint();
+}
+
+int Page::tabAt(Point<float> p) const
+{
+    for (int i = 0; i < (int)sections.size(); i++)
+        if (sections[(size_t)i].title.isNotEmpty() && sectionTab(sections[(size_t)i].r, sections[(size_t)i].title).expanded(2.0f).contains(p))
+            return i;
+    return -1;
+}
+
+void Page::mouseDown(const MouseEvent &e)
+{
+    if (e.mods.isPopupMenu())
+        return;
+    int i = tabAt(e.position);
+    if (i >= 0 && onSection)
+        onSection(i);
+}
+
+void Page::mouseMove(const MouseEvent &e)
+{
+    setMouseCursor(tabAt(e.position) >= 0 ? MouseCursor::PointingHandCursor : MouseCursor::NormalCursor);
 }
 
 void Page::paintBackground(Graphics &g, float px)

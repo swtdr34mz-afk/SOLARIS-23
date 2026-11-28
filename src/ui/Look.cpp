@@ -350,17 +350,27 @@ void drawSection(Graphics &g, Rectangle<float> r, const String &title, Sec s)
     if (title.isEmpty())
         return;
     auto f = font(Face::title, 12.0f).withExtraKerningFactor(0.10f);
-    GlyphArrangement ga;
-    ga.addLineOfText(f, title, 0, 0);
-    float w = ga.getBoundingBox(0, -1, true).getWidth() + 20.0f;
-    auto tab = Rectangle<float>(r.getX(), r.getY(), jmin(w, r.getWidth()), 18.0f);
+    auto tab = sectionTab(r, title);
     Path p;
     p.addRoundedRectangle(tab.getX(), tab.getY(), tab.getWidth(), tab.getHeight(), 4.0f, 4.0f, true, false, false, true);
     g.setColour(ink());
     g.fillPath(p);
     g.setColour(Colour(0xff151515));
     g.setFont(f);
-    g.drawText(title, tab.withTrimmedLeft(10.0f), Justification::centredLeft, false);
+    g.drawText(title, tab.withTrimmedLeft(10.0f).withTrimmedRight(16.0f), Justification::centredLeft, false);
+    /* a small magnifier printed at the tab's end: a click on the tab shows the section large */
+    const Point<float> c(tab.getRight() - 11.0f, tab.getCentreY() - 0.8f);
+    g.drawEllipse(Rectangle<float>(7.0f, 7.0f).withCentre(c), 1.4f);
+    g.drawLine(c.x + 2.6f, c.y + 2.6f, c.x + 5.2f, c.y + 5.2f, 1.8f);
+}
+
+Rectangle<float> sectionTab(Rectangle<float> r, const String &title)
+{
+    auto f = font(Face::title, 12.0f).withExtraKerningFactor(0.10f);
+    GlyphArrangement ga;
+    ga.addLineOfText(f, title, 0, 0);
+    float w = ga.getBoundingBox(0, -1, true).getWidth() + 20.0f + 16.0f;
+    return {r.getX(), r.getY(), jmin(w, r.getWidth()), 18.0f};
 }
 
 /* ------------------------------------------------------------------------------------ helpers --- */

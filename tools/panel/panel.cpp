@@ -6,6 +6,7 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include "Controls.h"
+#include "Sections.h"
 #include <cstring>
 
 using namespace juce;
@@ -107,6 +108,21 @@ int main(int argc, char **argv)
         }
         std::printf("resize: %.1f ms per frame on average, %.1f ms the slowest\n", sum / 20.0, worst);
         return 0;
+    }
+    if (!std::strcmp(argv[1], "--zoom") && argc > 3) {   /* s23_panel --zoom <section> <out.png> [window scale]: a section's tab clicked */
+        SolarisProcessor proc;
+        std::unique_ptr<AudioProcessorEditor> ed(proc.createEditor());
+        float ws = argc > 4 ? (float)std::atof(argv[4]) : 0.75f;
+        ed->setSize((int)(SolarisEditor::W * ws), (int)(SolarisEditor::H * ws));
+        static_cast<SolarisEditor *>(ed.get())->settle();
+        for (auto *c : ed->getChildren())
+            if (auto *pg = dynamic_cast<s23::Page *>(c))
+                pg->onSection(std::atoi(argv[2]));
+        Image img = ed->createComponentSnapshot(ed->getLocalBounds(), true, 1.0f);
+        File f = File::getCurrentWorkingDirectory().getChildFile(argv[3]);
+        f.deleteFile();
+        FileOutputStream out(f);
+        return out.openedOk() && PNGImageFormat().writeImageToStream(img, out) ? 0 : 1;
     }
     float scale = argc > 2 ? (float)std::atof(argv[2]) : 1.0f;
     SolarisProcessor proc;

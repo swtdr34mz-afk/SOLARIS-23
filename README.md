@@ -97,7 +97,7 @@ Trotzdem ausführen*.
   position.
 - **The panel:** one powder-coated metal panel, black print, plastic caps, metal toggles, the drone keys, the orbit
   rings and a black touch field, after the drone machines it is inspired by. Click the name (top left) for the
-  panel's finish: ORANGE, YELLOW, WHITE, BLUE, PINK (kept with the project). Drag a knob (SHIFT: fine), double-click for its default. Right-click any knob, switch, the joystick (left half X, right half Y), a cartridge or a touch plate for the host's menu of that parameter (MIDI learn, automation …); a right click never changes a value (in the standalone app a choice's right click still opens its list). Click a
+  panel's finish: ORANGE, YELLOW, WHITE, BLUE, PINK (kept with the project). Click a section's name tab (the magnifier) to show that section as large as the window allows, playable as ever; click outside it, the X or the tab again for the whole panel. Drag a knob (SHIFT: fine), double-click for its default. Right-click any knob, switch, the joystick (left half X, right half Y), a cartridge or a touch plate for the host's menu of that parameter (MIDI learn, automation …); a right click never changes a value (in the standalone app a choice's right click still opens its list). Click a
   cartridge for all 24 programs, its lamps 1-2-3 for the cartridge's programs. The joystick: drag, double-click to
   centre. The window's corner sizes it (kept with the project).
 

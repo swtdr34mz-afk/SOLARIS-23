@@ -36,10 +36,18 @@ struct Page : juce::Component {
     std::function<void(juce::Graphics &)> extra;
     void paint(juce::Graphics &g) override;
     void paintBackground(juce::Graphics &g, float px);
+    void mouseDown(const juce::MouseEvent &) override;
+    void mouseMove(const juce::MouseEvent &) override;
+    std::function<void(int)> onSection;  /* a section's name tab clicked (its index in sections) */
+    int tabAt(juce::Point<float>) const;
+    void setZoom(juce::Rectangle<float> r);   /* the section shown large (empty: none): drawn sharp at its size */
 
 private:
     juce::Image cache;                  /* the panel, its print and its wear: drawn once */
     float cacheScale = 0.0f;
+    juce::Rectangle<float> zoomR;       /* (zoomed: that part of the panel drawn again at the zoom's resolution) */
+    juce::Image zoomCache;
+    float zoomScale = 0.0f;
 };
 
 struct Builder {

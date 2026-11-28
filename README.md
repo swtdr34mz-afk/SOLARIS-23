@@ -82,6 +82,8 @@ Trotzdem ausführen*.
    dann *Neu scannen*. SOLARIUM-23A steht unter *Plug-Ins → swtdr34mz*.
    Logic: beim nächsten Start prüft Logic das AU von selbst (unter *Instrumente → AU-Instrumente → swtdr34mz*).
 
+**Linux (Bitwig, Reaper, Ardour, ...):** Die `.tar.gz` entpacken. `SOLARIUM-23A.vst3` nach `~/.vst3/` kopieren, `SOLARIUM-23A.lv2` nach `~/.lv2/`. Die App `SOLARIUM-23A` startet auch ohne DAW. 64 Bit, gebaut auf Ubuntu 22.04.
+
 ## In the plugin
 
 - **Every parameter** (212) is a host parameter: automatable, saved with the project. The order and the ids are

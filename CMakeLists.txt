@@ -33,11 +33,15 @@ set(S23_FORMATS VST3 Standalone)
 if(APPLE)
     list(APPEND S23_FORMATS AU)
 endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    list(APPEND S23_FORMATS LV2)
+endif()
 
 juce_add_plugin(Solaris23
     PRODUCT_NAME "SOLARIUM-23A"
     COMPANY_NAME "swtdr34mz"
     BUNDLE_ID "com.swtdr34mz.solaris23"
+    LV2URI "https://github.com/swtdr34mz-afk/SOLARIUM-23A"
     PLUGIN_MANUFACTURER_CODE Swtd
     PLUGIN_CODE So23                     # (kept from SOLARIS-23, its name before v1.3: hosts find their projects)
     FORMATS ${S23_FORMATS}

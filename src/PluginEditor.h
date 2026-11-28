@@ -13,6 +13,7 @@ public:
     explicit SolarisEditor(SolarisProcessor &);
     ~SolarisEditor() override;
     void resized() override;
+    bool sized = false;                      /* (resizes during the constructor keep nothing) */
     void paint(juce::Graphics &) override {}
 
 private:

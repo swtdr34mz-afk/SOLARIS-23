@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 #include "PluginProcessor.h"
+#include "PanelDialog.h"
 #include "PluginEditor.h"
 
 using namespace sol;
@@ -48,7 +49,7 @@ SolarisProcessor::SolarisProcessor()
 /* ----------------------------------------------------------------------------------- programs --- */
 juce::File SolarisProcessor::presetFolder()
 {
-    auto docs = juce::File::getSpecialLocation(juce::File::userDocumentsDirectory);
+    auto docs = pdlg::docsOrAppData();
     auto dir = docs.getChildFile("SOLARIUM-23A").getChildFile("Presets");
     /* (the plugin was called SOLARIS-23 before v1.3: its own programs come along, copied once) */
     auto old = docs.getChildFile("SOLARIS-23").getChildFile("Presets");

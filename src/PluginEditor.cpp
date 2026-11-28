@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: MPL-2.0
  * Copyright (C) 2026 swtdr34mz (SOLARIUM-23A) */
 #include "PluginEditor.h"
+#include "PanelDialog.h"
+#include "WindowSize.h"
 
 using namespace s23;
 using namespace juce;
@@ -113,10 +115,15 @@ SolarisEditor::SolarisEditor(SolarisProcessor &p) : AudioProcessorEditor(&p), pr
         if (dynamic_cast<Lamp *>(c) || dynamic_cast<Plates *>(c))
             lamps.push_back(c);
 
-    setResizable(true, true);
+    /* the size it was left at, read before the window is made resizable; a new instance (still at the default
+     * size): the size last used anywhere */
     float s = proc.uiScale.load();
+    if (std::abs(s - 0.8f) < 1e-4f)
+        s = juce::jlimit(0.5f, 1.5f, (float)winsize::last("SOLARIUM-23A", 0.8));
+    setResizable(true, true);
     getConstrainer()->setFixedAspectRatio((double)W / (double)H);
     setResizeLimits(W / 2, H / 2, (int)(W * 1.5f), (int)(H * 1.5f));
+    sized = true;
     setSize((int)std::lround(W * s), (int)std::lround(H * s));
     startTimerHz(30);
 }
@@ -135,7 +142,10 @@ void SolarisEditor::resized()
 {
     float s = (float)getWidth() / (float)W;
     page.setTransform(AffineTransform::scale(s));
+    if (!sized)
+        return;
     proc.uiScale = s;
+    winsize::remember("SOLARIUM-23A", (double)s);
 }
 
 void SolarisEditor::timerCallback()
@@ -211,9 +221,10 @@ void SolarisEditor::saveProgram()
     w->addTextEditor("name", proc.getProgramName(proc.getCurrentProgram()));
     w->addButton("SAVE", 1, KeyPress(KeyPress::returnKey));
     w->addButton("CANCEL", 0, KeyPress(KeyPress::escapeKey));
+    pdlg::showInside(*this, w);
     w->enterModalState(true, ModalCallbackFunction::create([this, w](int r) {
                            if (r == 1)
-                               proc.writePreset(w->getTextEditorContents("name"));
+                               pdlg::checked(proc.writePreset(w->getTextEditorContents("name")), *this);
                            header->repaint();
                        }),
                        true);

@@ -106,7 +106,7 @@ void SolarisProcessor::setCurrentProgram(int index)
     std::vector<float> v((size_t)NPARAMS);
     if (index >= 0 && index < numPresets())
         presetValues(index, v.data());
-    else if (index >= numPresets() && index < getNumPrograms())
+    else if (index >= numPresets() && index < programCount())
         v = userPresets[(size_t)(index - numPresets())].v;
     else
         return;
@@ -120,7 +120,7 @@ const juce::String SolarisProcessor::getProgramName(int index)
 {
     if (index >= 0 && index < numPresets())
         return presetName(index);
-    if (index >= numPresets() && index < getNumPrograms())
+    if (index >= numPresets() && index < programCount())
         return userPresets[(size_t)(index - numPresets())].name;
     return {};
 }
@@ -220,7 +220,7 @@ void SolarisProcessor::setStateInformation(const void *data, int sizeInBytes)
     if (auto xml = getXmlFromBinary(data, sizeInBytes))
         if (xml->hasTagName(apvts.state.getType())) {
             auto state = juce::ValueTree::fromXml(*xml);
-            program = juce::jlimit(0, juce::jmax(0, getNumPrograms() - 1), (int)state.getProperty("program", 0));
+            program = juce::jlimit(0, juce::jmax(0, programCount() - 1), (int)state.getProperty("program", 0));
             uiScale = juce::jlimit(0.5f, 1.5f, (float)state.getProperty("uiScale", 0.8f));
             uiFinish = juce::jlimit(0, 4, (int)state.getProperty("uiFinish", 0));
             apvts.replaceState(state);

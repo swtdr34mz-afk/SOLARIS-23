@@ -4,6 +4,9 @@ The newest first. To release a new version: raise the number in VERSION and put 
 "## <the new number>". After the merge into main the release is made by itself (auto-release.yml), the
 downloads are built into it, and the website and the Discord post follow.
 
+## 1.3.5
+After saving a sound of your own, the plugin now stays on it (before, Cubase, FL Studio and other VST3 hosts switched to another patch, so the new one had to be loaded again).
+
 ## 1.3.4
 New: zoom into any section. Click a section's name tab (with the small magnifier) and that section fills the window, sharp and fully playable. Great on small laptop screens. Click outside it, on the X, or on the tab again to see the whole panel.
 

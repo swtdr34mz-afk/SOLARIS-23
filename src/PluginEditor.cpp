@@ -51,7 +51,7 @@ struct SolarisEditor::Header : Component {
     {
         if (e.mods.isPopupMenu())        /* (a right click changes nothing) */
             return;
-        int n = ed.proc.getNumPrograms(), p = ed.proc.getCurrentProgram();
+        int n = ed.proc.programCount(), p = ed.proc.getCurrentProgram();
         if (prog().contains(e.position))
             ed.programMenu();
         else if (prev().expanded(4.0f).contains(e.position))
@@ -327,7 +327,7 @@ void SolarisEditor::programMenu()
     if (!proc.userPresets.empty()) {
         m.addSeparator();
         m.addSectionHeader("YOUR OWN");
-        for (int i = sol::numPresets(); i < proc.getNumPrograms(); i++)
+        for (int i = sol::numPresets(); i < proc.programCount(); i++)
             m.addItem(i + 1, String(i + 1).paddedLeft('0', 2) + "  " + proc.getProgramName(i), true, i == proc.getCurrentProgram());
     }
     m.addSeparator();
